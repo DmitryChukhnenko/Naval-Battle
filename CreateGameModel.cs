@@ -12,7 +12,7 @@ namespace Client {
 
     public class CreateGameModel : BindableBase {
         private Dictionary<int, int> Fleet_Field { get; } = new Dictionary<int, int> {};
-        private Dictionary<int, int> Field_Fleet { get; }
+        private Dictionary<int, int> Field_Fleet { get; } = new Dictionary<int, int> { };
 
         public IList<int> FleetSizes { get; }
         public IList<int> FieldSizes { get; }
@@ -46,7 +46,8 @@ namespace Client {
             get => fleetSize;
             set {
                 SetProperty(ref fleetSize, value);
-                FieldSize = Field_Fleet[value];
+                if (Fleet_Field[value] != FieldSize) 
+                    FieldSize = Fleet_Field[value];
             }
         }
 
@@ -55,7 +56,8 @@ namespace Client {
             get => fieldSize;
             set {
                 SetProperty(ref fieldSize, value);
-                FleetSize = Fleet_Field[value];
+                if (Field_Fleet[value] != FleetSize)
+                    FleetSize = Field_Fleet[value];
             }
         }
 
@@ -65,9 +67,11 @@ namespace Client {
             set => SetProperty(ref regime, value);
         }
 
-        public CreateGameModel() {         
-            for (int i = 3; i<=20; i++) Fleet_Field.Add(i * i / 5, i * i);
-            Field_Fleet = Field_Fleet!.ToDictionary(ff => ff.Value, ff => ff.Key);
+        public CreateGameModel() {
+            for (int i = 3; i <= 20; i++) {
+                Fleet_Field.Add(i * i / 5, i * i);
+                Field_Fleet.Add(i * i, i * i / 5);
+            }
 
             FleetSizes = Fleet_Field.Select(ff => ff.Key).ToList();
             FieldSizes = Fleet_Field.Select(ff => ff.Value).ToList();

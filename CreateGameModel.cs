@@ -62,7 +62,7 @@ namespace Client {
         }
 
         private Regime regime;
-        private Regime Regime {
+        public Regime Regime {
             get => regime;
             set => SetProperty(ref regime, value);
         }

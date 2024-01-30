@@ -63,7 +63,7 @@ namespace Client {
         public async void LobbyClient(string gameId, string nickname) {
             serverTcp = new TcpClient(gameId, 2024);
 
-            if (isHost) await TCP.SendWithLength(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
+            if (isHost) await TCP.SendWithLength(serverTcp, JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel));
 
             await TCP.SendString(serverTcp, nickname);
             createGameModel = (CreateGameModel) JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;

@@ -22,7 +22,7 @@ namespace Client {
             }
         }
 
-        private byte[] bytes;
+        private byte[] bytes = { };
         public async void LobbyListenToClient(TcpClient from) {
             bool run = true;
 

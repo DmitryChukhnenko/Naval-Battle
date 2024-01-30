@@ -1,0 +1,29 @@
+﻿<Window x:Class="Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <DockPanel>        
+        <UniformGrid Rows="1" DockPanel.Dock="Bottom">
+            <GroupBox Header="Input game Id">
+                <UniformGrid Columns="1">
+                    <TextBox Text="{Binding GameId}"/>
+                    <Button Click="PlayWithId" Content="Play"/>
+                </UniformGrid>
+            </GroupBox>
+            <Button Click="HostGame" Content="Host"/>
+        </UniformGrid>
+        
+        <UniformGrid Rows="1" DockPanel.Dock="Bottom">
+            <TextBlock Text="Input Nickname" Padding="10"/>
+            <TextBox Text="{Binding Nickname}"/>
+        </UniformGrid>
+        
+        <Viewbox>
+            <Label Content="Naval Battle" FontWeight="Bold"/>
+        </Viewbox>
+    </DockPanel>
+</Window>

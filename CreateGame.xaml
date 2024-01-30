@@ -1,0 +1,33 @@
+﻿<Window x:Class="Client.CreateGame"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client"
+        mc:Ignorable="d"
+        Title="CreateGame" Height="450" Width="800">
+    <UniformGrid Columns="1">
+        <UniformGrid Rows="1">
+            <TextBlock Text="Select fleet size" Margin="10"
+                       TextAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding FleetSizes}"
+                      SelectedItem="{Binding FleetSize}"
+                      Margin="10"/>
+        </UniformGrid>
+        <UniformGrid Rows="1">
+            <TextBlock Text="Select field size" Margin="10"
+               TextAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding FieldSizes}"
+              SelectedItem="{Binding FieldSize}"
+              Margin="10"/>
+        </UniformGrid>
+        <UniformGrid Rows="1">
+            <TextBlock Text="Select regime" Margin="10"
+               TextAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding Regimes}"
+              SelectedItem="{Binding Regime}"
+              Margin="10"/>
+        </UniformGrid>
+        <Button Margin="10" Padding="10" Click="Button_Click" Content="Host"/>
+    </UniformGrid>
+</Window>

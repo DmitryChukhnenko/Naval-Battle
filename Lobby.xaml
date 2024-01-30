@@ -5,16 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Lobby" Height="450" Width="800">
+        Title="Lobby" Height="450" Width="800"
+        Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
             <GroupBox Header="Game id" DockPanel.Dock="Top" Margin="5">
-                <TextBlock Text="{Binding }" Margin="5"/>
+                <TextBox Text="{Binding GameId}" Margin="5" IsReadOnly="True"/>
             </GroupBox>
             <Button Click="Button_Click" Content="Play"
                     DockPanel.Dock="Bottom" Margin="5"/>
             <GroupBox Header="Players" Margin="5">
-                <ListBox ItemsSource="{Binding }"/>
+                <ListBox ItemsSource="{Binding Players}"/>
             </GroupBox>            
         </DockPanel>
         <Viewbox>

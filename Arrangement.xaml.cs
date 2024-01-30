@@ -99,6 +99,10 @@ namespace Client {
                 try {
                     Player tmp = (Player)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(Player))!;
                     tmp.IsEnemy = true;
+                    foreach (OneCell cell in tmp.Cells)
+                    {
+                        cell.AddNeighboors(tmp.Cells);
+                    }
                     players.Add(tmp);
                 }
                 catch (Exception) {
@@ -107,7 +111,9 @@ namespace Client {
             }
             serverTcp.Dispose();
 
-
+            Game game = new Game(players, gameId, mainWindow);
+            this.Visibility = Visibility.Hidden;
+            game.ShowDialog();
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e) {
@@ -121,6 +127,11 @@ namespace Client {
             else {
                 await TCP.SendString(serverTcp, "Confirm");
             }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            mainWindow.Close();
         }
     }
 }

@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Text.Json;
+using System.Runtime.ConstrainedExecution;
 
 namespace Client {
     /// <summary>
@@ -24,7 +25,7 @@ namespace Client {
         Task runServer;
         LobbyModel lobbyModel;
         MainWindow mainWindow;
-        CreateGameModel? createGameModel = null;        
+        CreateGameModel? createGameModel;        
 
         public Lobby(string nickname, CreateGameModel createGameModel, MainWindow mainWindow) {
             InitializeComponent();
@@ -40,11 +41,12 @@ namespace Client {
            .First().ToString();
 
             lobbyModel.GameId = ip;
+            DataContext = lobbyModel;
 
             // создаём сервер, отвечающий за список игроков, на отдельном потоке
             Server server = new Server();
             runServer = Task.Run(() => server.HostServer(ip, server.LobbyListenToClient));
-            LobbyClient(ip, nickname);
+            LobbyClient(ip, nickname);                        
         }
 
         public Lobby(string nickname, string gameId, MainWindow mainWindow) {
@@ -54,6 +56,7 @@ namespace Client {
             this.mainWindow = mainWindow;
 
             lobbyModel.GameId = gameId;
+            DataContext = lobbyModel;
 
             // обращаемся к серверу за списком игроков (по gameId) по кд на отдельном потоке
             LobbyClient(gameId, nickname);
@@ -63,16 +66,22 @@ namespace Client {
         public async void LobbyClient(string gameId, string nickname) {
             serverTcp = new TcpClient(gameId, 2024);
 
-            if (isHost) await TCP.SendWithLength(serverTcp, JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel));
+            if (isHost) { 
+                byte[] ser = JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel);
+                string b = Encoding.UTF8.GetString(ser);
+                await TCP.SendWithLength(serverTcp, ser);                
+            }
 
             await TCP.SendString(serverTcp, nickname);
-            createGameModel = (CreateGameModel) JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;
+            byte[] res = await TCP.ReceiveVariable(serverTcp);
+            string a = Encoding.UTF8.GetString(res);
+            createGameModel = (CreateGameModel) JsonSerializer.Deserialize(res, typeof(CreateGameModel))!;
 
             while (true) {
                 try {
                     string result = await TCP.ReceiveString(serverTcp);
                     if (result == "Close") break;
-                    lobbyModel.Add(result);
+                    lobbyModel.Players = result.Split('\n');
                 }
                 catch (Exception) {
                     break;
@@ -83,13 +92,17 @@ namespace Client {
             List<OneCell> cells = new List<OneCell> { };
             for (int y = 0; y < Math.Sqrt(createGameModel.FieldSize); y++) {
                 for (int x = 0; x < Math.Sqrt(createGameModel.FieldSize); x++)
-                    cells.Add(new OneCell(new Point(x, y)));
+                {
+                    OneCell cell = new OneCell(new Point(x, y));
+                    cell.IsFogHere = false;
+                    cells.Add(cell);
+                }
             }
             foreach (OneCell cell in cells) {
                 cell.AddNeighboors(cells);
             }
 
-            Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, new Player(nickname, cells), createGameModel, mainWindow);
+            Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, new Player(nickname, cells, createGameModel.FleetSize), createGameModel, mainWindow);
             this.Visibility = Visibility.Hidden;
             arrangement.ShowDialog();
         }
@@ -99,6 +112,11 @@ namespace Client {
             if (isHost) {
                 await TCP.SendString(serverTcp, "Close");
             }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            mainWindow.Close();
         }
     }
 }

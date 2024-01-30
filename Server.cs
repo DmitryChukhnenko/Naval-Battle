@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.Numerics;
 
 namespace Client {
     public class Server {
@@ -22,28 +24,38 @@ namespace Client {
             }
         }
 
-        private byte[] bytes = { };
+        private byte[] bytes;
+        private List<string> names = new List<string>();
         public async void LobbyListenToClient(TcpClient from) {
             bool run = true;
 
-            if (clients.Count == 0) bytes = await TCP.ReceiveVariable(from);
+            if (clients.Count == 1) bytes = await TCP.ReceiveVariable(from);
+
+            IReadOnlyList<TcpClient> copy;
+            lock (clients) copy = clients.ToList();
 
             while (run) {
-                string name;
                 try {
-                    name = await TCP.ReceiveString(from);
-                    if (name == "Close") { runServer = false; run = false; }
+                    string name = await TCP.ReceiveString(from);
+                    if (name == "Close") {
+                        runServer = false;
+                        run = false;
+                        foreach (TcpClient to in copy)
+                        {
+                            await TCP.SendString(to, name);
+                        }
+                    }
+                    else names.Add(name);
                     await TCP.SendWithLength(from, bytes);
                 }
                 catch (Exception) {
                     break;
                 }
-
-                IReadOnlyList<TcpClient> copy;
+                
                 lock (clients) copy = clients.ToList();
                 
                 foreach (TcpClient to in copy) {
-                    await TCP.SendString(to, name);
+                    await TCP.SendString(to, string.Join('\n', names));
                 }
             }            
             lock (clients) clients.Remove(from);
@@ -74,6 +86,36 @@ namespace Client {
                     break;
                 }
             }            
+            lock (clients) clients.Remove(from);
+            from.Dispose();
+        }
+
+        public async void GameListenToClient(TcpClient from)
+        {
+            bool run = true;
+            while (run)
+            {
+                byte[] bytes;
+                try
+                {
+                    bytes = await TCP.ReceiveVariable(from);
+                }
+                catch (Exception)
+                {
+                    break;
+                }
+
+                IReadOnlyList<TcpClient> copy;
+                lock (clients) copy = clients.ToList();
+
+                foreach (TcpClient to in copy)
+                {
+                    if (to != from)
+                    {
+                        await TCP.SendWithLength(to, bytes);
+                    }
+                }
+            }
             lock (clients) clients.Remove(from);
             from.Dispose();
         }

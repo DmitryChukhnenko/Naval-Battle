@@ -5,11 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Game" Height="450" Width="800">
-    <ItemsControl ItemsSource="{Binding }">
+        Title="Game" Height="450" Width="800"
+        Closing="Window_Closing">
+    <ItemsControl ItemsSource="{Binding Players}">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <GroupBox Header="{Binding }">
+                <GroupBox Header="{Binding Nickname}">
                     <ItemsControl ItemsSource="{Binding Cells}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -37,7 +38,7 @@
 
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="{Binding }" Rows="{Binding }"/>
+                                <UniformGrid Columns="{Binding FieldSize}" Rows="{Binding FieldSize}"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>

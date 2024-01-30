@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -28,20 +29,30 @@ namespace Client {
             set => SetProperty(ref isShipBowHere, value);
         }
 
+        public bool isFogHere;
+        public bool IsFogHere
+        {
+            get => isFogHere;
+            set => SetProperty(ref isFogHere, value);
+        }
+
+        
         public OneCell(Point point) {
             Point = point;
             IsShipHere = false;
             IsDamagedShipHere = false;
             IsShipBowHere = false;
+            IsFogHere = true;
         }
 
-        public OneCell(Point point, bool isShipHere, bool isDamagedShipHere, bool isShipBowHere) : this(point) {
+        public OneCell(Point point, bool isShipHere, bool isDamagedShipHere, bool isShipBowHere, bool isFogHere) : this(point) {
             IsShipHere = isShipHere;
             IsDamagedShipHere = isDamagedShipHere;
             IsShipBowHere = isShipBowHere;
+            IsFogHere = isFogHere;
         }
 
-        public OneCell[,] Neighboors { get; set; } = new OneCell[3, 3];
+        [JsonIgnore] public OneCell[,] Neighboors { get; set; } = new OneCell[3, 3];
 
         public void AddNeighboors(List<OneCell> cells) {
             for (int y = -1; y < 2; y++) {

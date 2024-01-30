@@ -33,5 +33,10 @@ namespace Client {
             this.Visibility = Visibility.Hidden;
             lobby.ShowDialog();
         }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            mainWindow.Close();
+        }
     }
 }

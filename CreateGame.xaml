@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="CreateGame" Height="450" Width="800">
+        Title="CreateGame" Height="450" Width="800"
+        Closing="Window_Closing">
     <UniformGrid Columns="1">
         <UniformGrid Rows="1">
             <TextBlock Text="Select fleet size" Margin="10"

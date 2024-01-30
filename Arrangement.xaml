@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Arrangement" Height="450" Width="800">
+        Title="Arrangement" Height="450" Width="800"
+        Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
             <Button DockPanel.Dock="Bottom" Click="Button_Click_1" Content="Send" Padding="15"/>

@@ -19,6 +19,13 @@ namespace Client {
             set => SetProperty(ref isEnemy, value);
         }
 
+        private bool hasLost;
+        public bool HasLost
+        {
+            get => hasLost;
+            set => SetProperty(ref hasLost, value);
+        }
+
         private List<OneCell> cells = new List<OneCell> { };
         public List<OneCell> Cells {
             get => cells;
@@ -34,10 +41,29 @@ namespace Client {
             Cells = cells;
         }
 
-        public Player(string nickname, List<OneCell> cells) {
+        private int fieldSize;
+        public int FieldSize
+        {
+            get => fieldSize;
+            set => SetProperty(ref fieldSize, value);
+        }
+
+        private int fleetSize;
+        public int FleetSize
+        {
+            get => fleetSize;
+            set => SetProperty(ref fleetSize, value);
+        }
+
+        public Player(string nickname, List<OneCell> cells, int fleetSize) {
             Nickname = nickname;
             IsEnemy = false;
+            HasLost = false;
             Cells = cells;
+            FieldSize = (int) Math.Sqrt(cells.Count);
+            FleetSize = fleetSize;
         }
+
+        public Player(){}
     }
 }

@@ -55,8 +55,8 @@ namespace Client {
             }
 
             CreateGame create = new CreateGame(this, mainMenuModel.Nickname);
-            create.ShowDialog();
             this.Visibility = Visibility.Hidden;
+            create.ShowDialog();
         }
     }
 }

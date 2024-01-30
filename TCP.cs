@@ -35,7 +35,6 @@ namespace Client {
                 int read = await file.ReadAsync(buffer, 0,
                     Math.Min(buffer.Length, length - pos));
                 await client.GetStream().WriteAsync(buffer, 0, read);
-                //Console.WriteLine(read);
                 pos += read;
             }
         }

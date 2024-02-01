@@ -24,6 +24,7 @@ namespace Client {
         bool isHost;
         bool hasSent;
         string gameId;
+        int port = 2025;
         Server server;
         Task runServer;
         Player player;
@@ -51,7 +52,7 @@ namespace Client {
                         
             if (isHost) {
                 server = new Server();
-                runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient));
+                runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient, port));
             }            
         }
 
@@ -69,7 +70,9 @@ namespace Client {
                 cell.IsShipBowHere = false;
                 cell.IsShipHere = false;
                 shipsCounter++;
-                shipsCounters[OneCell.CountLength(0, cell)]++;
+                int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
+                shipsCounters[length]++;
+                shipsCounters[length + 1]--;
             }
 
             else if (!cell.IsShipHere && shipsCounter != 0) {
@@ -79,7 +82,8 @@ namespace Client {
                 if (cell.Neighboors[0, 0].IsShipHere || cell.Neighboors[0, 2].IsShipHere || cell.Neighboors[2, 0].IsShipHere || cell.Neighboors[2, 2].IsShipHere) return;
                 if ((cell.Neighboors[0, 1].IsShipBowHere && cell.Neighboors[2, 1].IsShipBowHere) || (cell.Neighboors[1, 0].IsShipBowHere && cell.Neighboors[1, 2].IsShipBowHere)) return;
 
-                if (shipsCounters[OneCell.CountLength(0, cell) + 1] != 0) {
+                int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
+                if (shipsCounters[length] != 0) {
                     foreach (OneCell cel in cell.Neighboors) {
                         if (cel.IsShipHere && cel.IsShipBowHere)
                             cel.IsShipBowHere = false;
@@ -87,7 +91,9 @@ namespace Client {
                     cell.IsShipHere = true;
                     cell.IsShipBowHere = true;
                     shipsCounter--;
-                    shipsCounters[OneCell.CountLength(0, cell)]--;
+                    shipsCounters[length]--;
+                    if (length - 1 >= 0)
+                        shipsCounters[length - 1]++;
                 }
             }
         }
@@ -142,7 +148,7 @@ namespace Client {
 
         private async void Window_Loaded(object sender, RoutedEventArgs e) {
             await Task.Delay(50);
-            serverTcp = new TcpClient(gameId, 2024);
+            serverTcp = new TcpClient(gameId, port);
 
             if (isHost) await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
             else createGameModel = (CreateGameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;

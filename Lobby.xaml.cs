@@ -22,6 +22,7 @@ namespace Client {
     /// </summary>
     public partial class Lobby : Window {
         bool isHost;
+        int port = 2024;
         Server server;
         Task runServer;
         LobbyModel lobbyModel;
@@ -46,7 +47,7 @@ namespace Client {
 
             // создаём сервер, отвечающий за список игроков, на отдельном потоке
             server = new Server();
-            runServer = Task.Run(() => server.HostServer(ip, server.LobbyListenToClient));
+            runServer = Task.Run(() => server.HostServer(ip, server.LobbyListenToClient, port));
             LobbyClient(ip, nickname);                        
         }
 
@@ -65,7 +66,7 @@ namespace Client {
 
         TcpClient serverTcp;
         public async void LobbyClient(string gameId, string nickname) {
-            serverTcp = new TcpClient(gameId, 2024);
+            serverTcp = new TcpClient(gameId, port);
 
             if (isHost) { 
                 byte[] ser = JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel);

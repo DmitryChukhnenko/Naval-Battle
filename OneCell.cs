@@ -52,6 +52,8 @@ namespace Client {
             IsFogHere = isFogHere;
         }
 
+        public OneCell() { }
+
         [JsonIgnore] public OneCell[,] Neighboors { get; set; } = new OneCell[3, 3];
 
         public void AddNeighboors(List<OneCell> cells) {
@@ -67,9 +69,11 @@ namespace Client {
             }
         }
 
-        public static int CountLength(int length, OneCell cell) {
-            if ((cell.Neighboors[0, 1].IsShipHere && cell.Neighboors[2, 1].IsShipHere) 
-                || (cell.Neighboors[1, 0].IsShipHere && cell.Neighboors[1, 2].IsShipHere)) return CountLength(length, cell);
+        public static int CountLength(int length, OneCell cell, OneCell previous) {
+            if (cell.Neighboors[0, 1].IsShipHere && previous != cell.Neighboors[0, 1]) return CountLength(++length, cell.Neighboors[0, 1], cell);
+            else if (cell.Neighboors[2, 1].IsShipHere && previous != cell.Neighboors[2, 1]) return CountLength(++length, cell.Neighboors[2, 1], cell);
+            else if (cell.Neighboors[1, 0].IsShipHere && previous != cell.Neighboors[1, 0]) return CountLength(++length, cell.Neighboors[1, 0], cell);
+            else if (cell.Neighboors[1, 2].IsShipHere && previous != cell.Neighboors[1, 2]) return CountLength(++length, cell.Neighboors[1, 2], cell);
             return length;
         }
     }

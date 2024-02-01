@@ -15,9 +15,9 @@ namespace Client {
         bool runServer = true;
         private byte[] bytes;
 
-        public async Task HostServer(string ip, Action<TcpClient> action) {
+        public async Task HostServer(string ip, Action<TcpClient> action, int port) {
             TcpListener listener =
-            new TcpListener(IPAddress.Parse(ip), 2024);
+            new TcpListener(IPAddress.Parse(ip), port);
             listener.Start();
             while (runServer) {
                 TcpClient client = await listener.AcceptTcpClientAsync();                
@@ -67,7 +67,7 @@ namespace Client {
         public async void ArrangementListenToClient(TcpClient from) {
             if (clients.Count == 1) bytes = await TCP.ReceiveVariable(from);
             else await TCP.SendVariable(from, bytes);
-            players.Add((Player)JsonSerializer.Deserialize(await TCP.ReceiveVariable(from), typeof(Player))!);
+            players.Add(JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(from))!);
 
             bool run = true;
             IReadOnlyList<TcpClient> copy;
@@ -82,8 +82,7 @@ namespace Client {
                             runServer = false;
                             lock (clients) copy = clients.ToList();
                             foreach (TcpClient to in copy) {
-                                if (to != from) 
-                                    await TCP.SendString(to, name);
+                                await TCP.SendString(to, name);
                                 await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes(new PlayerList(players), typeof(PlayerList)));
                             }
                         }

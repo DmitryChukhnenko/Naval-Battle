@@ -52,6 +52,7 @@ namespace Client {
     /// </summary>
     public partial class Game : Window {
         GameModel gameModel;
+        int port = 2026;
         int index;
         Task runServer;
         Task runClient;
@@ -62,11 +63,12 @@ namespace Client {
             InitializeComponent();
             gameModel = new GameModel(players, gameId);
             this.index = index;
-            this.mainWindow = mainWindow;
-            serverTcp = new TcpClient(gameId, 2024);
+            this.mainWindow = mainWindow;            
 
             Server server = new Server();
-            runServer = Task.Run(() => server.HostServer(gameId, server.GameListenToClient));
+            runServer = Task.Run(() => server.HostServer(gameId, server.GameListenToClient, port));
+
+            serverTcp = new TcpClient(gameId, port);
 
             runClient = Task.Run(() => ArrangementClient());
 

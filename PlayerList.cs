@@ -12,5 +12,7 @@ namespace Client {
         public PlayerList(List<Player> players) {
             Players = players;
         }
+
+        public PlayerList() { }
     }
 }

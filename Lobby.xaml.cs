@@ -22,6 +22,7 @@ namespace Client {
     /// </summary>
     public partial class Lobby : Window {
         bool isHost;
+        Server server;
         Task runServer;
         LobbyModel lobbyModel;
         MainWindow mainWindow;
@@ -44,7 +45,7 @@ namespace Client {
             DataContext = lobbyModel;
 
             // создаём сервер, отвечающий за список игроков, на отдельном потоке
-            Server server = new Server();
+            server = new Server();
             runServer = Task.Run(() => server.HostServer(ip, server.LobbyListenToClient));
             LobbyClient(ip, nickname);                        
         }

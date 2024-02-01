@@ -19,8 +19,6 @@ namespace Client {
         public IList<Regime> Regimes { get; }
 
         public List<List<int>> Ships { get; } = new List<List<int>>{
-            new List<int> { 0, 0, 0, 0, 0, 0 },
-            new List<int> { 0, 0, 0, 0, 0, 0 },
             new List<int> { 2, 0, 0, 0, 0, 0 },
             new List<int> { 3, 0, 0, 0, 0, 0 },
             new List<int> { 3, 1, 0, 0, 0, 0 },

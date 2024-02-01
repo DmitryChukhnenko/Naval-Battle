@@ -24,6 +24,7 @@ namespace Client {
         bool isHost;
         bool hasSent;
         string gameId;
+        Server server;
         Task runServer;
         Player player;
         List<Player> players = new List<Player>();
@@ -49,9 +50,8 @@ namespace Client {
             DataContext = player;
                         
             if (isHost) {
-                Server server = new Server();
+                server = new Server();
                 runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient));
-                serverTcp = new TcpClient(gameId, 2024);
             }            
         }
 
@@ -79,14 +79,16 @@ namespace Client {
                 if (cell.Neighboors[0, 0].IsShipHere || cell.Neighboors[0, 2].IsShipHere || cell.Neighboors[2, 0].IsShipHere || cell.Neighboors[2, 2].IsShipHere) return;
                 if ((cell.Neighboors[0, 1].IsShipBowHere && cell.Neighboors[2, 1].IsShipBowHere) || (cell.Neighboors[1, 0].IsShipBowHere && cell.Neighboors[1, 2].IsShipBowHere)) return;
 
-                foreach (OneCell cel in cell.Neighboors) {
-                    if (cel.IsShipHere && cel.IsShipBowHere) 
-                        cel.IsShipBowHere = false;
+                if (shipsCounters[OneCell.CountLength(0, cell) + 1] != 0) {
+                    foreach (OneCell cel in cell.Neighboors) {
+                        if (cel.IsShipHere && cel.IsShipBowHere)
+                            cel.IsShipBowHere = false;
+                    }
+                    cell.IsShipHere = true;
+                    cell.IsShipBowHere = true;
+                    shipsCounter--;
+                    shipsCounters[OneCell.CountLength(0, cell)]--;
                 }
-                cell.IsShipHere = true;
-                cell.IsShipBowHere = true;
-                shipsCounter--;
-                shipsCounters[OneCell.CountLength(0, cell)]--;
             }
         }
 
@@ -105,13 +107,13 @@ namespace Client {
                 }
             }
 
-            List<Player> tmp = ((PlayerList)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(PlayerList))!).Players;
-            foreach (Player player in tmp) {
+            PlayerList tmp = (PlayerList)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(PlayerList))!;
+            foreach (Player player in tmp.Players) {
                 foreach (OneCell cell in player.Cells) {
                     cell.AddNeighboors(player.Cells);
                 }
             }
-            players = tmp;
+            players = tmp.Players;
 
             serverTcp.Dispose();
 
@@ -139,12 +141,11 @@ namespace Client {
         
 
         private async void Window_Loaded(object sender, RoutedEventArgs e) {
+            await Task.Delay(50);
+            serverTcp = new TcpClient(gameId, 2024);
+
             if (isHost) await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
-            else {
-                await Task.Delay(50);
-                serverTcp = new TcpClient(gameId, 2024);
-                createGameModel = (CreateGameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;
-            }
+            else createGameModel = (CreateGameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;
         }
     }
 }

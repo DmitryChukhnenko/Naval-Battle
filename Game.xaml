@@ -14,10 +14,15 @@
                     <ItemsControl ItemsSource="{Binding Cells}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="20" Height="20">
-                                    <Button Click="Button_Click"/>
-                                    <Image x:Name="image"/>
-                                </Grid>
+                                <Viewbox Margin="5">
+                                    <Grid Width="50" Height="50">
+                                        <Button Click="Button_Click" Width="55" Height="55">
+                                            <Button.Content>
+                                                <Image x:Name="image" Stretch="UniformToFill"/>
+                                            </Button.Content>
+                                        </Button>
+                                    </Grid>
+                                </Viewbox>
 
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsShipHere}" Value="False">
@@ -31,6 +36,9 @@
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsShipBowHere}" Value="True">
                                         <Setter Property="Image.Source" Value="shipbow.png" TargetName="image"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsFogHere}" Value="True">
+                                        <Setter Property="Image.Source" Value="fog.png" TargetName="image"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

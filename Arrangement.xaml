@@ -6,21 +6,27 @@
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
         Title="Arrangement" Height="450" Width="800"
-        Closing="Window_Closing">
+        Closing="Window_Closing" Loaded="Window_Loaded">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
-            <Button DockPanel.Dock="Bottom" Click="Button_Click_1" Content="Send" Padding="15"/>
-            <Button DockPanel.Dock="Bottom" Click="Button_Click_2" Content="Confirm" Padding="15"/>
+            <Button DockPanel.Dock="Bottom" Click="Button_Click_1" Content="Confirm" Padding="15"/>
+            <Button DockPanel.Dock="Bottom" Click="Button_Click_2" Content="End" Padding="15"/>
             <TextBlock Opacity="100"/>
         </DockPanel>
 
         <ItemsControl ItemsSource="{Binding Cells}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Grid Width="20" Height="20">
-                        <Button Click="Button_Click"/>
-                        <Image x:Name="image"/>
-                    </Grid>
+                    <Viewbox Margin="5">
+                        <Grid Width="50" Height="50">
+                            <Button Click="Button_Click" Width="55" Height="55">
+                                <Button.Content>
+                                    <Image x:Name="image" Stretch="UniformToFill"/>
+                                </Button.Content>
+                            </Button>
+                        </Grid>
+                    </Viewbox>
+                    
 
                     <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding IsShipHere}" Value="False">
@@ -35,13 +41,16 @@
                         <DataTrigger Binding="{Binding IsShipBowHere}" Value="True">
                             <Setter Property="Image.Source" Value="shipbow.png" TargetName="image"/>
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding IsFogHere}" Value="True">
+                            <Setter Property="Image.Source" Value="fog.png" TargetName="image"/>
+                        </DataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
 
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <UniformGrid Columns="{Binding }" Rows="{Binding }"/>
+                    <UniformGrid Columns="{Binding FieldSize}" Rows="{Binding FieldSize}"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
         </ItemsControl>

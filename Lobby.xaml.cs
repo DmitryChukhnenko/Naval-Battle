@@ -69,7 +69,7 @@ namespace Client {
             if (isHost) { 
                 byte[] ser = JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel);
                 string b = Encoding.UTF8.GetString(ser);
-                await TCP.SendWithLength(serverTcp, ser);                
+                await TCP.SendVariable(serverTcp, ser);                
             }
 
             await TCP.SendString(serverTcp, nickname);
@@ -114,9 +114,6 @@ namespace Client {
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            mainWindow.Close();
-        }
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
     }
 }

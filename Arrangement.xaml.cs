@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Xml.Linq;
 using static System.Collections.Specialized.BitVector32;
 
 namespace Client {
@@ -21,6 +22,7 @@ namespace Client {
     /// </summary>
     public partial class Arrangement : Window {
         bool isHost;
+        bool hasSent;
         string gameId;
         Task runServer;
         Player player;
@@ -34,6 +36,7 @@ namespace Client {
             InitializeComponent();
 
             this.isHost = isHost;
+            hasSent = false;
             this.gameId = gameId;
             this.player = player;
             players.Add(player);
@@ -44,30 +47,29 @@ namespace Client {
             shipsCounters = createGameModel.Ships[createGameModel.FleetSizes.IndexOf(shipsCounter)];
 
             DataContext = player;
-
+                        
             if (isHost) {
                 Server server = new Server();
-                runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient));                
-            }
-
-            // Начать писать саму игру
-            // Найти картинки
+                runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient));
+                serverTcp = new TcpClient(gameId, 2024);
+            }            
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) {
-            Grid grid = (Grid)sender;
-            OneCell cell = (OneCell)grid.DataContext;
+            if (hasSent) { MessageBox.Show("You have already sent your arrangement!"); return; }
+
+            Button button = (Button)sender;
+            OneCell cell = (OneCell)button.DataContext;
 
             if (cell.IsShipBowHere && cell.IsShipHere) {
                 foreach (OneCell cel in cell.Neighboors) {
-                    if (cel.IsShipHere && (!cel.IsShipBowHere)) {
-                        cell.IsShipBowHere = false;
-                        cell.IsShipHere = false;
+                    if (cel.IsShipHere && (!cel.IsShipBowHere)) 
                         cel.IsShipBowHere = true;
-                        shipsCounter++;
-                        shipsCounters[OneCell.CountLength(-1, cell)]++;
-                    }
                 }
+                cell.IsShipBowHere = false;
+                cell.IsShipHere = false;
+                shipsCounter++;
+                shipsCounters[OneCell.CountLength(0, cell)]++;
             }
 
             else if (!cell.IsShipHere && shipsCounter != 0) {
@@ -78,46 +80,50 @@ namespace Client {
                 if ((cell.Neighboors[0, 1].IsShipBowHere && cell.Neighboors[2, 1].IsShipBowHere) || (cell.Neighboors[1, 0].IsShipBowHere && cell.Neighboors[1, 2].IsShipBowHere)) return;
 
                 foreach (OneCell cel in cell.Neighboors) {
-                    if (cel.IsShipHere && cel.IsShipBowHere) {
+                    if (cel.IsShipHere && cel.IsShipBowHere) 
                         cel.IsShipBowHere = false;
-                        cell.IsShipHere = true;
-                        cell.IsShipBowHere = true;
-                        shipsCounter--;
-                        shipsCounters[OneCell.CountLength(-1, cell)]--;
-                    }
                 }
+                cell.IsShipHere = true;
+                cell.IsShipBowHere = true;
+                shipsCounter--;
+                shipsCounters[OneCell.CountLength(0, cell)]--;
             }
         }
 
         TcpClient serverTcp;
         private async void ArrangementClient(string gameId) {
-            serverTcp = new TcpClient(gameId, 2024);
+            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(player, typeof(Player)));
 
-            if (isHost) await TCP.SendWithLength(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
-
+            string result;
             while (true) {
                 try {
-                    Player tmp = (Player)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(Player))!;
-                    tmp.IsEnemy = true;
-                    foreach (OneCell cell in tmp.Cells)
-                    {
-                        cell.AddNeighboors(tmp.Cells);
-                    }
-                    players.Add(tmp);
+                    result = await TCP.ReceiveString(serverTcp);
+                    if (result == "Close") break; 
                 }
                 catch (Exception) {
                     break;
                 }
             }
+
+            List<Player> tmp = ((PlayerList)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(PlayerList))!).Players;
+            foreach (Player player in tmp) {
+                foreach (OneCell cell in player.Cells) {
+                    cell.AddNeighboors(player.Cells);
+                }
+            }
+            players = tmp;
+
             serverTcp.Dispose();
 
-            Game game = new Game(players, gameId, mainWindow);
+            Game game = new Game(players, gameId, players.IndexOf(player), mainWindow);
             this.Visibility = Visibility.Hidden;
             game.ShowDialog();
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e) {
+            if (shipsCounter != 0) { MessageBox.Show($"Use all ships! Rest is {shipsCounter}"); return; }
             ArrangementClient(gameId);
+            hasSent = true;
         }
 
         private async void Button_Click_2(object sender, RoutedEventArgs e) {
@@ -125,13 +131,20 @@ namespace Client {
                 await TCP.SendString(serverTcp, "Close");
             }
             else {
-                await TCP.SendString(serverTcp, "Confirm");
+                await TCP.SendString(serverTcp, "Exit");
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            mainWindow.Close();
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
+        
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e) {
+            if (isHost) await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
+            else {
+                await Task.Delay(50);
+                serverTcp = new TcpClient(gameId, 2024);
+                createGameModel = (CreateGameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;
+            }
         }
     }
 }

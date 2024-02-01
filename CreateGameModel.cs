@@ -69,8 +69,8 @@ namespace Client {
 
         public CreateGameModel() {
             for (int i = 3; i <= 20; i++) {
-                Fleet_Field.Add(i * i / 5, i * i);
-                Field_Fleet.Add(i * i, i * i / 5);
+                Fleet_Field.Add((int)Math.Round((i * i / 5) + 0.5), i * i);
+                Field_Fleet.Add(i * i, (int)Math.Round((i * i / 5) + 0.5));
             }
 
             FleetSizes = Fleet_Field.Select(ff => ff.Key).ToList();

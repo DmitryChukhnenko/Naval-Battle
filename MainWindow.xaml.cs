@@ -19,6 +19,9 @@ namespace Client {
     /// </summary>
     public partial class MainWindow : Window {
         MainWindowModel mainMenuModel;
+        public CreateGame create;
+        public Lobby lobby;
+
         public MainWindow() {
             InitializeComponent();
             mainMenuModel = new MainWindowModel();
@@ -39,7 +42,7 @@ namespace Client {
                 return;
             }
 
-            Lobby lobby = new Lobby(mainMenuModel.Nickname, mainMenuModel.GameId, this);
+            lobby = new Lobby(mainMenuModel.Nickname, mainMenuModel.GameId, this);
             this.Visibility = Visibility.Hidden;
             lobby.ShowDialog();            
         }
@@ -54,9 +57,15 @@ namespace Client {
                 return;
             }
 
-            CreateGame create = new CreateGame(this, mainMenuModel.Nickname);
+            create = new CreateGame(this, mainMenuModel.Nickname);
             this.Visibility = Visibility.Hidden;
             create.ShowDialog();
+        }
+
+        public void GoBack(Window window) {
+            Visibility = Visibility.Visible;
+            if (create is not null && create != window) create.Close();
+            else if (lobby is not null && create != window) lobby.Close();
         }
     }
 }

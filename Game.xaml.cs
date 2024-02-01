@@ -52,14 +52,16 @@ namespace Client {
     /// </summary>
     public partial class Game : Window {
         GameModel gameModel;
+        int index;
         Task runServer;
         Task runClient;
         MainWindow mainWindow;
         TcpClient serverTcp;
 
-        public Game(List<Player> players, string gameId, MainWindow mainWindow) {
+        public Game(List<Player> players, string gameId, int index, MainWindow mainWindow) {
             InitializeComponent();
-            gameModel = new GameModel(players.OrderBy(pl => pl.Nickname).ToList(), gameId);
+            gameModel = new GameModel(players, gameId);
+            this.index = index;
             this.mainWindow = mainWindow;
             serverTcp = new TcpClient(gameId, 2024);
 
@@ -72,12 +74,12 @@ namespace Client {
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e) {
-            Grid grid = (Grid)sender;
-            OneCell cell = (OneCell) grid.DataContext;
-            GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(grid);
+            Button button = (Button)sender;
+            OneCell cell = (OneCell) button.DataContext;
+            GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(button);
             Player player = (Player)groupBox.DataContext;
 
-            if (gameModel.Turn != gameModel.Players.IndexOf(player)) return;
+            if (gameModel.Turn != index) return;
 
             cell.IsFogHere = false;
             if (cell.IsShipHere)
@@ -94,11 +96,11 @@ namespace Client {
                         if (!p.HasLost) { notLost++; last = p; }
                     }
                     if (notLost == 1) gameModel.Winner = last;
-                    gameModel.IsRunning = notLost>0;
+                    gameModel.IsRunning = notLost>1;
                 }
             }
             
-            await TCP.SendWithLength(serverTcp, JsonSerializer.SerializeToUtf8Bytes(gameModel, typeof(GameModel)));
+            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(gameModel, typeof(GameModel)));
         }
 
         
@@ -110,6 +112,15 @@ namespace Client {
                 {
                     gameModel = (GameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(GameModel))!;
                     gameModel.Turn = (gameModel.Turn+1) % gameModel.Players.Count;
+                    if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
+                    foreach (Player p in gameModel.Players) {
+                        if (!p.HasLost) {
+                            foreach (OneCell cell in p.Cells) {
+                                if (index != gameModel.Players.IndexOf(p)) cell.IsFogHere = true;
+                                cell.AddNeighboors(p.Cells);
+                            }
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -119,9 +130,6 @@ namespace Client {
             serverTcp.Dispose();
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            mainWindow.Close();
-        }
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
     }
 }

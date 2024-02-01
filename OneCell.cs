@@ -57,16 +57,19 @@ namespace Client {
         public void AddNeighboors(List<OneCell> cells) {
             for (int y = -1; y < 2; y++) {
                 for (int x = -1; x < 2; x++) {
-                    if (x != 0 && y != 0) 
-                        Neighboors[1 + y, 1 + x] = cells.Find((OneCell cell) => cell.Point == new Point(Point.X + x, Point.Y + y));
+                    if (x == 0 && y == 0) Neighboors[1 + y, 1 + x] = new OneCell(new Point(Point.X + x, Point.Y + y));
+                    else {
+                        OneCell? result = cells.Find((OneCell cell) => cell.Point == new Point(Point.X + x, Point.Y + y));
+                        if (result is null) result = new OneCell(new Point(Point.X + x, Point.Y + y));
+                        Neighboors[1 + y, 1 + x] = result;
+                    }
                 }
             }
         }
 
         public static int CountLength(int length, OneCell cell) {
-            foreach (OneCell cel1 in cell.Neighboors) {
-                if (cel1.IsShipHere) return CountLength(length, cel1);
-            }
+            if ((cell.Neighboors[0, 1].IsShipHere && cell.Neighboors[2, 1].IsShipHere) 
+                || (cell.Neighboors[1, 0].IsShipHere && cell.Neighboors[1, 2].IsShipHere)) return CountLength(length, cell);
             return length;
         }
     }

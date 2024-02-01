@@ -10,19 +10,19 @@ namespace Client {
         public static async Task SendInt32(TcpClient client, int number) =>
             await client.GetStream().WriteAsync(BitConverter.GetBytes(number));
 
-        public static async Task SendWithLength (TcpClient client, byte[] buffer) {
+        public static async Task SendVariable (TcpClient client, byte[] buffer) {
             await SendInt32(client, buffer.Length);
             await client.GetStream().WriteAsync(buffer);
         }
 
         public static async Task SendString(TcpClient client, string text) =>
-            await SendWithLength(client, Encoding.UTF8.GetBytes(text));
+            await SendVariable(client, Encoding.UTF8.GetBytes(text));
 
         public static async Task SendBinaryWriter (TcpClient client, Action<BinaryWriter> write) {
             MemoryStream memory = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(memory);
             write(writer);
-            await SendWithLength(client, memory.ToArray());
+            await SendVariable(client, memory.ToArray());
         }
 
         public static async Task SendFile (TcpClient client, Stream file) {

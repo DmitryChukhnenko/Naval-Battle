@@ -7,11 +7,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Numerics;
+using System.Security.Cryptography;
 
 namespace Client {
     public class Server {
         private IList<TcpClient> clients = new List<TcpClient>();
         bool runServer = true;
+        private byte[] bytes;
 
         public async Task HostServer(string ip, Action<TcpClient> action) {
             TcpListener listener =
@@ -24,15 +26,13 @@ namespace Client {
             }
         }
 
-        private byte[] bytes;
         private List<string> names = new List<string>();
         public async void LobbyListenToClient(TcpClient from) {
             bool run = true;
 
             if (clients.Count == 1) bytes = await TCP.ReceiveVariable(from);
 
-            IReadOnlyList<TcpClient> copy;
-            lock (clients) copy = clients.ToList();
+            IReadOnlyList<TcpClient> copy;            
 
             while (run) {
                 try {
@@ -40,13 +40,14 @@ namespace Client {
                     if (name == "Close") {
                         runServer = false;
                         run = false;
+                        lock (clients) copy = clients.ToList();
                         foreach (TcpClient to in copy)
                         {
                             await TCP.SendString(to, name);
                         }
                     }
                     else names.Add(name);
-                    await TCP.SendWithLength(from, bytes);
+                    await TCP.SendVariable(from, bytes);
                 }
                 catch (Exception) {
                     break;
@@ -61,26 +62,32 @@ namespace Client {
             lock (clients) clients.Remove(from);
             from.Dispose();
         }
-        
+
+        private List<Player> players = new List<Player>();
         public async void ArrangementListenToClient(TcpClient from) {
+            if (clients.Count == 1) bytes = await TCP.ReceiveVariable(from);
+            else await TCP.SendVariable(from, bytes);
+            players.Add((Player)JsonSerializer.Deserialize(await TCP.ReceiveVariable(from), typeof(Player))!);
+
             bool run = true;
-
-            byte[] bytes = await TCP.ReceiveVariable(from);
-
             IReadOnlyList<TcpClient> copy;
-            lock (clients) copy = clients.ToList();
-
-            foreach (TcpClient to in copy) {
-                if (to != from) 
-                    await TCP.SendWithLength(to, bytes);
-            }
 
             while (run) {
                 string name;
                 try {                   
                     name = await TCP.ReceiveString(from);
-                    if (name == "Close") { runServer = false; run = false; }
-                    else if (name == "Confirm") run = false;
+                    if (name == "Close" || name == "Exit") {
+                        run = false;
+                        if (name == "Close") {
+                            runServer = false;
+                            lock (clients) copy = clients.ToList();
+                            foreach (TcpClient to in copy) {
+                                if (to != from) 
+                                    await TCP.SendString(to, name);
+                                await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes(new PlayerList(players), typeof(PlayerList)));
+                            }
+                        }
+                    }                    
                 }
                 catch (Exception) {
                     break;
@@ -112,7 +119,7 @@ namespace Client {
                 {
                     if (to != from)
                     {
-                        await TCP.SendWithLength(to, bytes);
+                        await TCP.SendVariable(to, bytes);
                     }
                 }
             }

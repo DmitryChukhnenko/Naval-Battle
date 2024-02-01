@@ -34,9 +34,6 @@ namespace Client {
             lobby.ShowDialog();
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            mainWindow.Close();
-        }
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
     }
 }

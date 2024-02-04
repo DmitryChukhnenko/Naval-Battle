@@ -48,9 +48,11 @@ namespace Client {
             shipsCounter = createGameModel.FleetSize;
             shipsCounters = createGameModel.Ships[createGameModel.FleetSizes.IndexOf(shipsCounter)];
 
-            DataContext = player;
+            DataContext = player;            
                         
             if (isHost) {
+                MessageBox.Show("You should wait for all players before clicking \"Confirm\".");
+
                 server = new Server();
                 runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient, port));
             }            
@@ -128,19 +130,15 @@ namespace Client {
             game.ShowDialog();
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e) {
+        private async void Button_Click_1(object sender, RoutedEventArgs e) {
             if (shipsCounter != 0) { MessageBox.Show($"Use all ships! Rest is {shipsCounter}"); return; }
             ArrangementClient(gameId);
             hasSent = true;
+            if (isHost) await TCP.SendString(serverTcp, "Close");
         }
 
-        private async void Button_Click_2(object sender, RoutedEventArgs e) {
-            if (isHost) {
-                await TCP.SendString(serverTcp, "Close");
-            }
-            else {
-                await TCP.SendString(serverTcp, "Exit");
-            }
+        private async void Button_Click_2(object sender, RoutedEventArgs e) {            
+            await TCP.SendString(serverTcp, "Exit");
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);

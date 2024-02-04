@@ -69,14 +69,12 @@ namespace Client {
             serverTcp = new TcpClient(gameId, port);
 
             if (isHost) { 
-                byte[] ser = JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel);
-                string b = Encoding.UTF8.GetString(ser);
+                byte[] ser = JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel));
                 await TCP.SendVariable(serverTcp, ser);                
             }
 
             await TCP.SendString(serverTcp, nickname);
             byte[] res = await TCP.ReceiveVariable(serverTcp);
-            string a = Encoding.UTF8.GetString(res);
             createGameModel = (CreateGameModel) JsonSerializer.Deserialize(res, typeof(CreateGameModel))!;
 
             while (true) {
@@ -103,14 +101,13 @@ namespace Client {
             foreach (OneCell cell in cells) {
                 cell.AddNeighboors(cells);
             }
-
+            
             Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, new Player(nickname, cells, createGameModel.FleetSize), createGameModel, mainWindow);
             this.Visibility = Visibility.Hidden;
             arrangement.ShowDialog();
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e) {
-            // по нажатию play, если isHost, закрыть сервер
             if (isHost) {
                 await TCP.SendString(serverTcp, "Close");
             }

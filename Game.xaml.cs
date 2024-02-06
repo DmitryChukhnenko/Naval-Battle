@@ -86,6 +86,7 @@ namespace Client {
             cell.IsFogHere = false;
             if (cell.IsShipHere)
             {
+                MessageBox.Show("Strike!");
                 cell.IsDamagedShipHere = true;
                 player.FleetSize--;
                 if (player.FleetSize == 0) {

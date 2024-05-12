@@ -34,10 +34,7 @@
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsDamagedShipHere}" Value="True">
                             <Setter Property="Image.Source" Value="damagedship.png" TargetName="image"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding IsShipBowHere}" Value="True">
-                            <Setter Property="Image.Source" Value="shipbow.png" TargetName="image"/>
-                        </DataTrigger>
+                        </DataTrigger>                        
                         <DataTrigger Binding="{Binding IsFogHere}" Value="True">
                             <Setter Property="Image.Source" Value="fog.png" TargetName="image"/>
                         </DataTrigger>

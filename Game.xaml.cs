@@ -81,7 +81,7 @@ namespace Client {
             GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(button);
             Player player = (Player)groupBox.DataContext;
 
-            if (gameModel.Turn != index) return;
+            if (gameModel.Turn != index || cell.IsDamagedShipHere == true || player.Cells.Contains(cell)) return;
 
             cell.IsFogHere = false;
             if (cell.IsShipHere)
@@ -119,7 +119,7 @@ namespace Client {
                     foreach (Player p in gameModel.Players) {
                         if (!p.HasLost) {
                             foreach (OneCell cell in p.Cells) {
-                                if (index != gameModel.Players.IndexOf(p)) cell.IsFogHere = true;
+                                /*if (index != gameModel.Players.IndexOf(p))*/ cell.IsFogHere = true;
                                 cell.AddNeighboors(p.Cells);
                             }
                         }

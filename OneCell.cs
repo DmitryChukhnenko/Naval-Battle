@@ -23,12 +23,6 @@ namespace Client {
             set => SetProperty(ref isDamagedShipHere, value);
         }
 
-        public bool isShipBowHere;
-        public bool IsShipBowHere {
-            get => isShipHere;
-            set => SetProperty(ref isShipBowHere, value);
-        }
-
         public bool isFogHere;
         public bool IsFogHere
         {
@@ -41,14 +35,12 @@ namespace Client {
             Point = point;
             IsShipHere = false;
             IsDamagedShipHere = false;
-            IsShipBowHere = false;
-            IsFogHere = true;
+            IsFogHere = false;
         }
 
-        public OneCell(Point point, bool isShipHere, bool isDamagedShipHere, bool isShipBowHere, bool isFogHere) : this(point) {
+        public OneCell(Point point, bool isShipHere, bool isDamagedShipHere, bool isFogHere) : this(point) {
             IsShipHere = isShipHere;
             IsDamagedShipHere = isDamagedShipHere;
-            IsShipBowHere = isShipBowHere;
             IsFogHere = isFogHere;
         }
 

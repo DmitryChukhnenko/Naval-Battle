@@ -48,16 +48,17 @@ namespace Client {
                     }
                     else names.Add(name);
                     await TCP.SendVariable(from, bytes);
+
+                    lock (clients) copy = clients.ToList();
+                
+                    foreach (TcpClient to in copy) {
+                        await TCP.SendString(to, string.Join('\n', names));
+                    }
                 }
                 catch (Exception) {
                     break;
                 }
                 
-                lock (clients) copy = clients.ToList();
-                
-                foreach (TcpClient to in copy) {
-                    await TCP.SendString(to, string.Join('\n', names));
-                }
             }            
             lock (clients) clients.Remove(from);
             from.Dispose();
@@ -100,26 +101,27 @@ namespace Client {
         {
             bool run = true;
             while (run)
-            {
-                byte[] bytes;
+            {   
                 try
                 {
+                    byte[] bytes;
+                
                     bytes = await TCP.ReceiveVariable(from);
+
+                    IReadOnlyList<TcpClient> copy;
+                    lock (clients) copy = clients.ToList();
+
+                    foreach (TcpClient to in copy)
+                    {
+                        if (to != from)
+                        {
+                            await TCP.SendVariable(to, bytes);
+                        }
+                    }
                 }
                 catch (Exception)
                 {
                     break;
-                }
-
-                IReadOnlyList<TcpClient> copy;
-                lock (clients) copy = clients.ToList();
-
-                foreach (TcpClient to in copy)
-                {
-                    if (to != from)
-                    {
-                        await TCP.SendVariable(to, bytes);
-                    }
                 }
             }
             lock (clients) clients.Remove(from);

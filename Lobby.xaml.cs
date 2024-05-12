@@ -94,7 +94,6 @@ namespace Client {
                 for (int x = 0; x < Math.Sqrt(createGameModel.FieldSize); x++)
                 {
                     OneCell cell = new OneCell(new Point(x, y));
-                    cell.IsFogHere = false;
                     cells.Add(cell);
                 }
             }

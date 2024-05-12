@@ -64,34 +64,25 @@ namespace Client {
             Button button = (Button)sender;
             OneCell cell = (OneCell)button.DataContext;
 
-            if (cell.IsShipBowHere && cell.IsShipHere) {
-                foreach (OneCell cel in cell.Neighboors) {
-                    if (cel.IsShipHere && (!cel.IsShipBowHere)) 
-                        cel.IsShipBowHere = true;
-                }
-                cell.IsShipBowHere = false;
+            if (cell.IsShipHere) {
                 cell.IsShipHere = false;
                 shipsCounter++;
+
                 int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
                 shipsCounters[length]++;
                 shipsCounters[length + 1]--;
             }
 
             else if (!cell.IsShipHere && shipsCounter != 0) {
+                int count = 0;
                 foreach (OneCell cel in cell.Neighboors) {
-                    if (cel.IsShipHere && (!cel.IsShipBowHere)) return;
+                    if (cel.IsShipHere) count++;
+                    if (count > 1) return;
                 }
-                if (cell.Neighboors[0, 0].IsShipHere || cell.Neighboors[0, 2].IsShipHere || cell.Neighboors[2, 0].IsShipHere || cell.Neighboors[2, 2].IsShipHere) return;
-                if ((cell.Neighboors[0, 1].IsShipBowHere && cell.Neighboors[2, 1].IsShipBowHere) || (cell.Neighboors[1, 0].IsShipBowHere && cell.Neighboors[1, 2].IsShipBowHere)) return;
 
                 int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
                 if (shipsCounters[length] != 0) {
-                    foreach (OneCell cel in cell.Neighboors) {
-                        if (cel.IsShipHere && cel.IsShipBowHere)
-                            cel.IsShipBowHere = false;
-                    }
                     cell.IsShipHere = true;
-                    cell.IsShipBowHere = true;
                     shipsCounter--;
                     shipsCounters[length]--;
                     if (length - 1 >= 0)

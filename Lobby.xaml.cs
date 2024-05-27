@@ -27,7 +27,8 @@ namespace Client {
         Task runServer;
         LobbyModel lobbyModel;
         MainWindow mainWindow;
-        CreateGameModel? createGameModel;        
+        CreateGameModel? createGameModel;
+        TcpClient serverTcp;
 
         public Lobby(string nickname, CreateGameModel createGameModel, MainWindow mainWindow) {
             InitializeComponent();
@@ -36,7 +37,7 @@ namespace Client {
             this.mainWindow = mainWindow;
             this.createGameModel = createGameModel;
 
-            // с помощью танцев с бубном получаем свой ip, на нём
+            // с помощью танцев с бубном получаем свой ip,
             string ip = Dns.GetHostAddresses(Dns.GetHostName())
            .Where(adress => adress.AddressFamily == AddressFamily.InterNetwork)
            .Where(adress => adress.ToString().StartsWith("192.168"))
@@ -45,9 +46,9 @@ namespace Client {
             lobbyModel.GameId = ip;
             DataContext = lobbyModel;
 
-            // создаём сервер, отвечающий за список игроков, на отдельном потоке
+            // на нём создаём сервер, отвечающий за список игроков, на отдельном потоке
             server = new Server();
-            runServer = Task.Run(() => server.HostServer(ip, server.LobbyListenToClient, port));
+            runServer = Task.Run(() => server.HostServer(ip, port));
             LobbyClient(ip, nickname);                        
         }
 
@@ -63,52 +64,39 @@ namespace Client {
             // обращаемся к серверу за списком игроков (по gameId) по кд на отдельном потоке
             LobbyClient(gameId, nickname);
         }
-
-        TcpClient serverTcp;
+        
         public async void LobbyClient(string gameId, string nickname) {
             serverTcp = new TcpClient(gameId, port);
 
             if (isHost) { 
-                byte[] ser = JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel));
-                await TCP.SendVariable(serverTcp, ser);                
+                await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes<CreateGameModel>(createGameModel!));                
             }
 
             await TCP.SendString(serverTcp, nickname);
-            byte[] res = await TCP.ReceiveVariable(serverTcp);
-            createGameModel = (CreateGameModel) JsonSerializer.Deserialize(res, typeof(CreateGameModel))!;
+            createGameModel = (CreateGameModel) JsonSerializer.Deserialize<CreateGameModel>(await TCP.ReceiveVariable(serverTcp))!;
 
             while (true) {
                 try {
                     string result = await TCP.ReceiveString(serverTcp);
-                    if (result == "Close") break;
+                    if (result == "cmd:Close") break;
                     lobbyModel.Players = result.Split('\n');
                 }
                 catch (Exception) {
+                    serverTcp.Dispose();
                     break;
                 }
             }
-            serverTcp.Dispose();
 
-            List<OneCell> cells = new List<OneCell> { };
-            for (int y = 0; y < Math.Sqrt(createGameModel.FieldSize); y++) {
-                for (int x = 0; x < Math.Sqrt(createGameModel.FieldSize); x++)
-                {
-                    OneCell cell = new OneCell(new Point(x, y));
-                    cells.Add(cell);
-                }
-            }
-            foreach (OneCell cell in cells) {
-                cell.AddNeighboors(cells);
-            }
+            List<OneCell> cells = OneCell.CreateEmptyList(createGameModel.FieldSize);
             
-            Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, new Player(nickname, cells, createGameModel.FleetSize), createGameModel, mainWindow);
+            Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, new Player(nickname, cells, createGameModel.FleetSize), createGameModel, mainWindow, runServer, serverTcp);
             this.Visibility = Visibility.Hidden;
             arrangement.ShowDialog();
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e) {
             if (isHost) {
-                await TCP.SendString(serverTcp, "Close");
+                await TCP.SendString(serverTcp, "cmd:Close");
             }
         }
 

@@ -52,23 +52,21 @@ namespace Client {
     /// </summary>
     public partial class Game : Window {
         GameModel gameModel;
-        int port = 2026;
         int index;
         Task runServer;
         Task runClient;
         MainWindow mainWindow;
         TcpClient serverTcp;
 
-        public Game(List<Player> players, string gameId, int index, MainWindow mainWindow) {
+        public Game(List<Player> players, string gameId, int index, MainWindow mainWindow, Task runServer, TcpClient serverTcp) {
             InitializeComponent();
             gameModel = new GameModel(players, gameId);
             this.index = index;
             this.mainWindow = mainWindow;            
 
-            Server server = new Server();
-            runServer = Task.Run(() => server.HostServer(gameId, server.GameListenToClient, port));
+            this.runServer = runServer;
 
-            serverTcp = new TcpClient(gameId, port);
+            this.serverTcp = serverTcp;
 
             runClient = Task.Run(() => ArrangementClient());
 
@@ -81,54 +79,31 @@ namespace Client {
             GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(button);
             Player player = (Player)groupBox.DataContext;
 
-            if (gameModel.Turn != index || cell.IsDamagedShipHere == true || player.Cells.Contains(cell)) return;
+            if (gameModel.Turn != index || !cell.IsFogHere || player.Cells.Contains(cell)) return;
 
-            cell.IsFogHere = false;
-            if (cell.IsShipHere)
-            {
-                MessageBox.Show("Strike!");
-                cell.IsDamagedShipHere = true;
-                player.FleetSize--;
-                if (player.FleetSize == 0) {
-                    player.HasLost = true;
+            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(new NicknameCell(player.Nickname, cell), typeof(NicknameCell)));
 
-                    int notLost = 0;
-                    Player last = new Player();
-                    foreach (Player p in gameModel.Players)
-                    {
-                        if (!p.HasLost) { notLost++; last = p; }
-                    }
-                    if (notLost == 1) gameModel.Winner = last;
-                    gameModel.IsRunning = notLost>1;
-                }
-            }
-            
-            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(gameModel, typeof(GameModel)));
+            NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp))!;
+            MessageBox.Show(nicknameCell.Nickname);
         }
 
         
-        private async Task ArrangementClient()
-        {
-            while (gameModel.IsRunning)
-            {
-                try
-                {
-                    gameModel = (GameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(GameModel))!;
-                    gameModel.Turn = (gameModel.Turn+1) % gameModel.Players.Count;
-                    if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
-                    foreach (Player p in gameModel.Players) {
-                        if (!p.HasLost) {
-                            foreach (OneCell cell in p.Cells) {
-                                /*if (index != gameModel.Players.IndexOf(p))*/ cell.IsFogHere = true;
-                                cell.AddNeighboors(p.Cells);
-                            }
-                        }
-                    }
+        private async Task ArrangementClient() {
+            bool ex = false;
+            while (gameModel.IsRunning) {
+                try {
+                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp))!;
+                    if (nicknameCell.Nickname == "cmd:Close") gameModel.IsRunning = false;
+                    else MessageBox.Show(nicknameCell.Nickname);                                       
                 }
-                catch (Exception)
-                {
-                    break;
+                catch (Exception) {
+                    gameModel.IsRunning = false;
+                    ex = true;
                 }
+            }
+            if (!ex) {
+                gameModel.Winner = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(serverTcp))!;
+                if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
             }
             serverTcp.Dispose();
         }

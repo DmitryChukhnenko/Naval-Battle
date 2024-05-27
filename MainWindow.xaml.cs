@@ -33,14 +33,7 @@ namespace Client {
                 MessageBox.Show("Input game id");
                 return;
             }
-            if (mainMenuModel.Nickname == "") {
-                MessageBox.Show("Input your nickname");
-                return;
-            }
-            if (mainMenuModel.Nickname == "Close") {
-                MessageBox.Show("Input another nickname");
-                return;
-            }
+            if (Check()) return;
 
             lobby = new Lobby(mainMenuModel.Nickname, mainMenuModel.GameId, this);
             this.Visibility = Visibility.Hidden;
@@ -48,14 +41,7 @@ namespace Client {
         }
 
         private void HostGame(object sender, RoutedEventArgs e) {
-            if (mainMenuModel.Nickname == "") {
-                MessageBox.Show("Input your nickname");
-                return;
-            }
-            if (mainMenuModel.Nickname == "Close") {
-                MessageBox.Show("Input another nickname");
-                return;
-            }
+            if (Check()) return;
 
             create = new CreateGame(this, mainMenuModel.Nickname);
             this.Visibility = Visibility.Hidden;
@@ -66,6 +52,18 @@ namespace Client {
             Visibility = Visibility.Visible;
             if (create is not null && create != window) create.Close();
             else if (lobby is not null && create != window) lobby.Close();
+        }
+
+        private bool Check() {
+            if (mainMenuModel.Nickname == "") {
+                MessageBox.Show("Input your nickname");
+                return true;
+            }
+            if (mainMenuModel.Nickname == "cmd:Close" || mainMenuModel.Nickname == "cmd:Exit") {
+                MessageBox.Show("Invalid nickname");
+                return true;
+            }
+            return false;
         }
     }
 }

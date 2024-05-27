@@ -13,12 +13,6 @@ namespace Client {
             set => SetProperty(ref nickname, value);
         }
 
-        private bool isEnemy;
-        public bool IsEnemy {
-            get => isEnemy;
-            set => SetProperty(ref isEnemy, value);
-        }
-
         private bool hasLost;
         public bool HasLost
         {
@@ -57,7 +51,6 @@ namespace Client {
 
         public Player(string nickname, List<OneCell> cells, int fleetSize) {
             Nickname = nickname;
-            IsEnemy = false;
             HasLost = false;
             Cells = cells;
             FieldSize = (int) Math.Sqrt(cells.Count);
@@ -73,7 +66,6 @@ namespace Client {
             Player other = obj as Player;
 
             if (other.Nickname != Nickname) return false;
-            if (other.IsEnemy != IsEnemy) return false;
             if (other.HasLost != HasLost) return false;
             if (other.Cells.Count != Cells.Count) return false;
             if (other.FieldSize != FieldSize) return false;

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
         Title="Arrangement" Height="450" Width="800"
-        Closing="Window_Closing" Loaded="Window_Loaded">
+        Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
             <Button DockPanel.Dock="Bottom" Click="Button_Click_1" Content="Confirm" Padding="15"/>

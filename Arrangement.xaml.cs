@@ -24,8 +24,6 @@ namespace Client {
         bool isHost;
         bool hasSent;
         string gameId;
-        int port = 2025;
-        Server server;
         Task runServer;
         Player player;
         List<Player> players = new List<Player>();
@@ -33,8 +31,9 @@ namespace Client {
         MainWindow mainWindow;
         int shipsCounter;
         List<int> shipsCounters;
+        TcpClient serverTcp;
 
-        public Arrangement(bool isHost, string gameId, Player player, CreateGameModel createGameModel, MainWindow mainWindow) {
+        public Arrangement(bool isHost, string gameId, Player player, CreateGameModel createGameModel, MainWindow mainWindow, Task runServer, TcpClient serverTcp) {
             InitializeComponent();
 
             this.isHost = isHost;
@@ -44,6 +43,7 @@ namespace Client {
             players.Add(player);
             this.createGameModel = createGameModel;
             this.mainWindow = mainWindow;
+            this.serverTcp = serverTcp;
 
             shipsCounter = createGameModel.FleetSize;
             shipsCounters = createGameModel.Ships[createGameModel.FleetSizes.IndexOf(shipsCounter)];
@@ -51,10 +51,7 @@ namespace Client {
             DataContext = player;            
                         
             if (isHost) {
-                MessageBox.Show("You should wait for all players before clicking \"Confirm\".");
-
-                server = new Server();
-                runServer = Task.Run(() => server.HostServer(gameId, server.ArrangementListenToClient, port));
+                this.runServer = runServer;
             }            
         }
 
@@ -68,19 +65,20 @@ namespace Client {
                 cell.IsShipHere = false;
                 shipsCounter++;
 
-                int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
+                int length = OneCell.CountLength(0, cell, new OneCell(new XY()), player.Cells);
                 shipsCounters[length]++;
                 shipsCounters[length + 1]--;
             }
 
             else if (!cell.IsShipHere && shipsCounter != 0) {
                 int count = 0;
-                foreach (OneCell cel in cell.Neighboors) {
+                foreach (OneCell? cel in cell.Neighboors) {
+                    if (cel is null) continue;
                     if (cel.IsShipHere) count++;
                     if (count > 1) return;
                 }
 
-                int length = OneCell.CountLength(0, cell, new OneCell(new Point()));
+                int length = OneCell.CountLength(0, cell, new OneCell(new XY()), player.Cells);
                 if (shipsCounters[length] != 0) {
                     cell.IsShipHere = true;
                     shipsCounter--;
@@ -91,7 +89,6 @@ namespace Client {
             }
         }
 
-        TcpClient serverTcp;
         private async void ArrangementClient(string gameId) {
             await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(player, typeof(Player)));
 
@@ -100,23 +97,25 @@ namespace Client {
                 try {
                     result = await TCP.ReceiveString(serverTcp);
                     if (result == "Close") break; 
+                    else {
+                        players.Add(new(result, OneCell.CreateEmptyList(createGameModel.FieldSize), createGameModel.FleetSize));
+                    }
                 }
                 catch (Exception) {
+                    serverTcp.Dispose();
                     break;
                 }
             }
 
-            PlayerList tmp = (PlayerList)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(PlayerList))!;
-            foreach (Player player in tmp.Players) {
-                foreach (OneCell cell in player.Cells) {
-                    cell.AddNeighboors(player.Cells);
+            foreach (Player player in players) {
+                if (player != this.player) {
+                    foreach (OneCell cell in player.Cells) {
+                        cell.isFogHere = true;
+                    }
                 }
             }
-            players = tmp.Players;
 
-            serverTcp.Dispose();
-
-            Game game = new Game(players, gameId, players.IndexOf(player), mainWindow);
+            Game game = new Game(players, gameId, players.IndexOf(player), mainWindow, runServer, serverTcp);
             this.Visibility = Visibility.Hidden;
             game.ShowDialog();
         }
@@ -125,22 +124,13 @@ namespace Client {
             if (shipsCounter != 0) { MessageBox.Show($"Use all ships! Rest is {shipsCounter}"); return; }
             ArrangementClient(gameId);
             hasSent = true;
-            if (isHost) await TCP.SendString(serverTcp, "Close");
+            if (isHost) await TCP.SendString(serverTcp, "cmd:Close");
         }
 
         private async void Button_Click_2(object sender, RoutedEventArgs e) {            
-            await TCP.SendString(serverTcp, "Exit");
+            await TCP.SendString(serverTcp, "cmd:Exit");
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
-        
-
-        private async void Window_Loaded(object sender, RoutedEventArgs e) {
-            await Task.Delay(50);
-            serverTcp = new TcpClient(gameId, port);
-
-            if (isHost) await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(createGameModel, typeof(CreateGameModel)));
-            else createGameModel = (CreateGameModel)JsonSerializer.Deserialize(await TCP.ReceiveVariable(serverTcp), typeof(CreateGameModel))!;
-        }
     }
 }

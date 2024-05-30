@@ -81,29 +81,37 @@ namespace Client {
 
             if (cell is null || gameModel.Turn != index || !cell.IsFogHere || player.Cells.Contains(cell)) return;
 
-            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(new NicknameCell(player.Nickname, cell), typeof(NicknameCell)));
-
-            NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-            MessageBox.Show(nicknameCell.Nickname);
+            await serverTcp.SendMessage(MessageType.Game_ClientToServer_NicknameCell, new NicknameCell(player.Nickname, cell));
         }
 
         
         private async Task ArrangementClient() {
-            bool ex = false;
             while (gameModel.IsRunning) {
                 try {
-                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-                    if (nicknameCell.Nickname == "cmd:Close") gameModel.IsRunning = false;
-                    else MessageBox.Show(nicknameCell.Nickname);                                       
+                    Message message = await serverTcp.ReceiveMessage();
+
+                    if (message.Type == MessageType.Game_ServerToClient_YouLost) {
+                        gameModel.Players[index].HasLost = true;
+                    }
+
+                    else if (message.Type == MessageType.Game_ServerToClient_Winner) {
+                        gameModel.IsRunning = false;
+
+                        message.ExpectType(MessageType.Game_ServerToClient_Winner);
+                        gameModel.Winner = message.Deserialize1Arg<Player>();
+                        if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
+                    }
+
+                    else {
+                        message.ExpectType(MessageType.Game_ServerToClient_NicknameCell);
+                        NicknameCell nicknameCell = message.Deserialize1Arg<NicknameCell>();
+                        gameModel.Turn++;
+                        MessageBox.Show(nicknameCell.Nickname);
+                    }
                 }
                 catch (Exception) {
                     gameModel.IsRunning = false;
-                    ex = true;
                 }
-            }
-            if (!ex) {
-                gameModel.Winner = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-                if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
             }
             serverTcp.Dispose();
         }

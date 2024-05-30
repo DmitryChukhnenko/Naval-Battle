@@ -62,10 +62,6 @@ public partial class MainWindow : Window {
                 MessageBox.Show("Input your nickname");
                 return true;
             }
-            if (mainMenuModel.Nickname == "cmd:Close" || mainMenuModel.Nickname == "cmd:Exit") {
-                MessageBox.Show("Invalid nickname");
-                return true;
-            }
             return false;
         }
     }

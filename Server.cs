@@ -10,12 +10,14 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Windows;
 using System.Collections.ObjectModel;
+using System.Xml.Linq;
+using System.Threading;
 
 namespace Client {   
 public class Server {
         private IList<TcpClient> clients = new List<TcpClient>();
         bool runServer = true;
-        private byte[] bytes;
+        private CreateGameModel createGameModel;
 
         public async Task HostServer(string ip, int port) {
             TcpListener listener =
@@ -35,84 +37,79 @@ public class Server {
             bool run = true;
             bool ex = false;
             players.CollectionChanged += Test;
-
-            // Получение данных об игре от хоста и пересылка всем подключившимся
-            if (clients[0] == from) bytes = await TCP.ReceiveVariable(from);
-
             IReadOnlyList<TcpClient> copy;
             IReadOnlyList<Player> playersCopy;
+            CancellationTokenSource source = new CancellationTokenSource();
+
+            // Получение данных об игре от хоста и пересылка всем подключившимся
+            if (clients[0] == from) createGameModel = (await from.ReceiveMessage())
+                    .ExpectType(MessageType.Lobby_ClientToServer_CreateGameModel)
+                    .Deserialize1Arg<CreateGameModel>();
 
             while (run) {
                 try {
-                    string name = await TCP.ReceiveString(from);
-                    if (name == "cmd:Close") {
+                    Message message = await from.ReceiveMessage();
+                    if (message.Type == MessageType.Lobby_ClientToServer_Close) {
                         runServer = false;
                         run = false;
-                        // Вот здесь пересылка
+                        // Пересылка данных об игре
                         lock (clients) copy = clients.ToList();
                         foreach (TcpClient to in copy) {
-                            // Данных об игре
-                            await TCP.SendVariable(from, bytes);
-                            // Имени игрока
-                            await TCP.SendString(to, name);
+                            await to.SendMessage(MessageType.Lobby_ServerToClient_CreateGameModel, createGameModel!);                            
                         }
                     }
-                    else names.Add(name);
+                    else {
+                        message.ExpectType(MessageType.Lobby_ClientToServer_MyName);
+                        string name = message.Deserialize1Arg<string>();
+                        names.Add(name);
 
-                    // А также здесь
-                    // Данных об игре
-                    await TCP.SendVariable(from, bytes);
-
-                    // Имён игроков
-                    lock (clients) copy = clients.ToList();
-                    foreach (TcpClient to in copy) {
-                        await TCP.SendString(to, string.Join('\n', names));
+                        // Пересылка имен игроков всем
+                        lock (clients) copy = clients.ToList();
+                        foreach (TcpClient to in copy) {
+                            await to.SendMessage(MessageType.Lobby_ServerToClient_Name, names!);
+                        }
                     }
                 }
                 // Код на исключения
                 catch (Exception) {
-                    runServer = false;
                     run = false;
                     ex = true;
+                    lock (clients) clients.Remove(from);
+                    from.Dispose();
+                    return;
                 }                
-            }
-            if (ex) {
-                lock (clients) clients.Remove(from);
-                from.Dispose();
             }
 
             // Расстановка
             // Получение данных об игроке
-            Player newOne = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(from), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            Player newOne = (await from.ReceiveMessage())
+                    .ExpectType(MessageType.Arrangement_ClientToServer_Player)
+                    .Deserialize1Arg<Player>(); 
             lock (players) players.Add(newOne);
 
             // Ожидание закрытия расстановки
             run = true;
             while (run) {
-                string name;
                 try {
-                    name = await TCP.ReceiveString(from);
-                    if (name == "cmd:Close") {
+                    Message message = await from.ReceiveMessage();
+                    if (message.Type == MessageType.Arrangement_ClientToServer_Close) {
                         run = false;
                         runServer = false;
-                    }
-                    else if (name == "cmd:Exit") break;
 
-                    lock (clients) copy = clients.ToList();
-                    foreach (TcpClient to in copy) {
-                        await TCP.SendString(to, name);
+                        lock (clients) copy = clients.ToList();
+                        foreach (TcpClient to in copy) 
+                            await to.SendMessage(MessageType.Arrangement_ServerToClient_Close);
                     }
+                    else if (message.Type == MessageType.Arrangement_ClientToServer_Exit) break;
                 }
                 // Код на исключения
                 catch (Exception) {
-                    runServer = false;
                     run = false;
-                    ex = true;
+                    lock (clients) clients.Remove(from);
+                    lock (players) players.Remove(newOne);
+                    from.Dispose();
+                    return;
                 }
-            }
-            if (ex) {
-                lock (clients) clients.Remove(from);
-                from.Dispose();
             }
 
             // Ход игры
@@ -121,7 +118,9 @@ public class Server {
             while (run) {
                 try {
                     // Получение данных о ходе и их извлечение
-                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(from), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+                    NicknameCell nicknameCell = (await from.ReceiveMessage())
+                    .ExpectType(MessageType.Game_ClientToServer_NicknameCell)
+                    .Deserialize1Arg<NicknameCell>();
 
                     Player player = new();
                     lock (players) playersCopy = players.ToList();
@@ -159,28 +158,28 @@ public class Server {
                     else message = "Miss!";
 
                     // Отправка результата хода
-                    lock (clients) copy = clients.ToList();
-                    foreach (TcpClient to in copy) {
-                        await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes<NicknameCell>(new NicknameCell(message, cell)));
-                    }
                     if (player.HasLost) {
-                        foreach (TcpClient to in copy) {
-                            await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes<NicknameCell>(new NicknameCell("cmd:Close", cell)));
-                        }
+                        message += $" Player {player.Nickname} has lost!";
+                        await clients[players.IndexOf(player)].SendMessage(MessageType.Game_ServerToClient_YouLost);
+                    }
+
+                        lock (clients) copy = clients.ToList();
+                    foreach (TcpClient to in copy) {
+                        await to.SendMessage(MessageType.Game_ServerToClient_NicknameCell, new NicknameCell(message, cell));
                     }
                 }
                 // Код на исключения
                 catch (Exception) {
-                    runServer = false;
                     run = false;
                     ex = true;
+                    return;
                 }
             }
             // Отправка победителя
             if (!ex) {
                 lock (clients) copy = clients.ToList();
                 foreach (TcpClient to in copy) {
-                    await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes<Player>(winner));
+                    await to.SendMessage(MessageType.Game_ServerToClient_Winner, winner);
                 }
             }
             lock (clients) clients.Remove(from);

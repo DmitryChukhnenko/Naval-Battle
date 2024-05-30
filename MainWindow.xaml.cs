@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,7 +18,7 @@ namespace Client {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window {
+public partial class MainWindow : Window {
         MainWindowModel mainMenuModel;
         public CreateGame create;
         public Lobby lobby;
@@ -27,6 +28,8 @@ namespace Client {
             mainMenuModel = new MainWindowModel();
             DataContext = mainMenuModel;
         }
+
+
 
         private void PlayWithId(object sender, RoutedEventArgs e) {
             if (mainMenuModel.GameId == "") {

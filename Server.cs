@@ -9,9 +9,10 @@ using System.Text.Json;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Windows;
+using System.Collections.ObjectModel;
 
-namespace Client {
-    public class Server {
+namespace Client {   
+public class Server {
         private IList<TcpClient> clients = new List<TcpClient>();
         bool runServer = true;
         private byte[] bytes;
@@ -28,17 +29,18 @@ namespace Client {
         }
 
         private List<string> names = new List<string>();
-        private List<Player> players = new List<Player>();
+        private ObservableCollection<Player> players = new ObservableCollection<Player>();
 
         public async void ListenToClient(TcpClient from) {
             bool run = true;
             bool ex = false;
-
+            players.CollectionChanged += Test;
 
             // Получение данных об игре от хоста и пересылка всем подключившимся
             if (clients[0] == from) bytes = await TCP.ReceiveVariable(from);
 
-            IReadOnlyList<TcpClient> copy;            
+            IReadOnlyList<TcpClient> copy;
+            IReadOnlyList<Player> playersCopy;
 
             while (run) {
                 try {
@@ -81,9 +83,8 @@ namespace Client {
 
             // Расстановка
             // Получение данных об игроке
-            if (clients[0] == from) bytes = await TCP.ReceiveVariable(from);
-            players.Add(JsonSerializer.Deserialize<Player>(bytes));
-            else await TCP.SendVariable(from, bytes);            
+            Player newOne = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(from), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            lock (players) players.Add(newOne);
 
             // Ожидание закрытия расстановки
             run = true;
@@ -91,15 +92,15 @@ namespace Client {
                 string name;
                 try {
                     name = await TCP.ReceiveString(from);
-                    if (name == "cmd:Close" || name == "cmd:Exit") {
+                    if (name == "cmd:Close") {
                         run = false;
-                        if (name == "cmd:Close") {
-                            runServer = false;
-                            lock (clients) copy = clients.ToList();
-                            foreach (TcpClient to in copy) {
-                                await TCP.SendString(to, name);
-                            }
-                        }
+                        runServer = false;
+                    }
+                    else if (name == "cmd:Exit") break;
+
+                    lock (clients) copy = clients.ToList();
+                    foreach (TcpClient to in copy) {
+                        await TCP.SendString(to, name);
                     }
                 }
                 // Код на исключения
@@ -120,10 +121,11 @@ namespace Client {
             while (run) {
                 try {
                     // Получение данных о ходе и их извлечение
-                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(from))!;
+                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(from), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
 
                     Player player = new();
-                    foreach (Player plr in players) {
+                    lock (players) playersCopy = players.ToList();
+                    foreach (Player plr in playersCopy) {
                         if (plr.Nickname == nicknameCell.Nickname) player = plr;
                     }
 
@@ -146,7 +148,8 @@ namespace Client {
 
                             int notLost = 0;
                             Player last = new Player();
-                            foreach (Player p in players) {
+                            lock (players) playersCopy = players.ToList();
+                            foreach (Player p in playersCopy) {
                                 if (!p.HasLost) { notLost++; last = p; }
                             }
                             if (notLost == 1) winner = last;
@@ -186,68 +189,8 @@ namespace Client {
             // Отправка в бд игр
         }
 
-        
-        //public async void ArrangementListenToClient(TcpClient from) {
-        //    if (clients.Count == 1) bytes = await TCP.ReceiveVariable(from);
-        //    else await TCP.SendVariable(from, bytes);
-        //    players.Add(JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(from))!);
-
-        //    bool run = true;
-        //    IReadOnlyList<TcpClient> copy;
-
-        //    while (run) {
-        //        string name;
-        //        try {                   
-        //            name = await TCP.ReceiveString(from);
-        //            if (name == "Close" || name == "Exit") {
-        //                run = false;
-        //                if (name == "Close") {
-        //                    runServer = false;
-        //                    lock (clients) copy = clients.ToList();
-        //                    foreach (TcpClient to in copy) {
-        //                        await TCP.SendString(to, name);
-        //                        await TCP.SendVariable(to, JsonSerializer.SerializeToUtf8Bytes(new PlayerList(players), typeof(PlayerList)));
-        //                    }
-        //                }
-        //            }                    
-        //        }
-        //        catch (Exception) {
-        //            break;
-        //        }
-        //    }            
-        //    lock (clients) clients.Remove(from);
-        //    from.Dispose();
-        //}
-
-        //public async void GameListenToClient(TcpClient from)
-        //{
-        //    bool run = true;
-        //    while (run)
-        //    {   
-        //        try
-        //        {
-        //            byte[] bytes;
-                
-        //            bytes = await TCP.ReceiveVariable(from);
-
-        //            IReadOnlyList<TcpClient> copy;
-        //            lock (clients) copy = clients.ToList();
-
-        //            foreach (TcpClient to in copy)
-        //            {
-        //                if (to != from)
-        //                {
-        //                    await TCP.SendVariable(to, bytes);
-        //                }
-        //            }
-        //        }
-        //        catch (Exception)
-        //        {
-        //            break;
-        //        }
-        //    }
-        //    lock (clients) clients.Remove(from);
-        //    from.Dispose();
-        //}
+        private void Test(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) {
+            var x = e.NewItems;
+        }
     }
 }

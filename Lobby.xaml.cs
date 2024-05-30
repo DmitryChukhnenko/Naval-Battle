@@ -73,7 +73,7 @@ namespace Client {
             }
 
             await TCP.SendString(serverTcp, nickname);
-            createGameModel = (CreateGameModel) JsonSerializer.Deserialize<CreateGameModel>(await TCP.ReceiveVariable(serverTcp))!;
+            createGameModel = (CreateGameModel) JsonSerializer.Deserialize<CreateGameModel>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
 
             while (true) {
                 try {
@@ -94,7 +94,7 @@ namespace Client {
             arrangement.ShowDialog();
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e) {
+        private async void Continue(object sender, RoutedEventArgs e) {
             if (isHost) {
                 await TCP.SendString(serverTcp, "cmd:Close");
             }

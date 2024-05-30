@@ -9,8 +9,8 @@
         Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
-            <Button DockPanel.Dock="Bottom" Click="Button_Click_1" Content="Confirm" Padding="15"/>
-            <Button DockPanel.Dock="Bottom" Click="Button_Click_2" Content="Exit" Padding="15"/>
+            <Button DockPanel.Dock="Bottom" Click="Continue" Content="Confirm" Padding="15"/>
+            <Button DockPanel.Dock="Bottom" Click="Exit" Content="Exit" Padding="15"/>
             <TextBlock Opacity="100"/>
         </DockPanel>
 
@@ -19,7 +19,7 @@
                 <DataTemplate>
                     <Viewbox Margin="5">
                         <Grid Width="50" Height="50">
-                            <Button Click="Button_Click" Width="50" Height="50">
+                            <Button Click="SelectCell" Width="50" Height="50">
                                 <Button.Content>
                                     <Image x:Name="image" Stretch="UniformToFill" Source="water.png"/>
                                 </Button.Content>

@@ -29,6 +29,6 @@
               SelectedItem="{Binding Regime}"
               Margin="10"/>
         </UniformGrid>
-        <Button Margin="10" Padding="10" Click="Button_Click" Content="Host"/>
+        <Button Margin="10" Padding="10" Click="Confirm" Content="Host"/>
     </UniformGrid>
 </Window>

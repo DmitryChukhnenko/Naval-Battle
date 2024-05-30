@@ -55,7 +55,7 @@ namespace Client {
             }            
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
+        private void SelectCell(object sender, RoutedEventArgs e) {
             if (hasSent) { MessageBox.Show("You have already sent your arrangement!"); return; }
 
             Button button = (Button)sender;
@@ -90,13 +90,14 @@ namespace Client {
         }
 
         private async void ArrangementClient(string gameId) {
-            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(player, typeof(Player)));
+            await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes<Player>(player));
+            await TCP.SendString(serverTcp, player.Nickname);
 
             string result;
             while (true) {
                 try {
                     result = await TCP.ReceiveString(serverTcp);
-                    if (result == "Close") break; 
+                    if (result == "cmd:Close") break; 
                     else {
                         players.Add(new(result, OneCell.CreateEmptyList(createGameModel.FieldSize), createGameModel.FleetSize));
                     }
@@ -120,14 +121,14 @@ namespace Client {
             game.ShowDialog();
         }
 
-        private async void Button_Click_1(object sender, RoutedEventArgs e) {
+        private async void Continue(object sender, RoutedEventArgs e) {
             if (shipsCounter != 0) { MessageBox.Show($"Use all ships! Rest is {shipsCounter}"); return; }
             ArrangementClient(gameId);
             hasSent = true;
             if (isHost) await TCP.SendString(serverTcp, "cmd:Close");
         }
 
-        private async void Button_Click_2(object sender, RoutedEventArgs e) {            
+        private async void Exit(object sender, RoutedEventArgs e) {            
             await TCP.SendString(serverTcp, "cmd:Exit");
         }
 

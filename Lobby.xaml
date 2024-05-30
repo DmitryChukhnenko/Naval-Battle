@@ -12,7 +12,7 @@
             <GroupBox Header="Game id" DockPanel.Dock="Top" Margin="5">
                 <TextBox Text="{Binding GameId}" Margin="5" IsReadOnly="True"/>
             </GroupBox>
-            <Button Click="Button_Click" Content="Play"
+            <Button Click="Continue" Content="Play"
                     DockPanel.Dock="Bottom" Margin="5"/>
             <GroupBox Header="Players" Margin="5">
                 <ListBox ItemsSource="{Binding Players}"/>

@@ -28,7 +28,7 @@ namespace Client {
             DataContext = createGameModel;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
+        private void Confirm(object sender, RoutedEventArgs e) {
             Lobby lobby = new Lobby(nickname, createGameModel, mainWindow);
             this.Visibility = Visibility.Hidden;
             lobby.ShowDialog();

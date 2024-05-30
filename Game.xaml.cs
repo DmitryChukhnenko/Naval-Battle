@@ -73,17 +73,17 @@ namespace Client {
             DataContext = gameModel;
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e) {
+        private async void Move(object sender, RoutedEventArgs e) {
             Button button = (Button)sender;
             OneCell cell = (OneCell) button.DataContext;
             GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(button);
             Player player = (Player)groupBox.DataContext;
 
-            if (gameModel.Turn != index || !cell.IsFogHere || player.Cells.Contains(cell)) return;
+            if (cell is null || gameModel.Turn != index || !cell.IsFogHere || player.Cells.Contains(cell)) return;
 
             await TCP.SendVariable(serverTcp, JsonSerializer.SerializeToUtf8Bytes(new NicknameCell(player.Nickname, cell), typeof(NicknameCell)));
 
-            NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp))!;
+            NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
             MessageBox.Show(nicknameCell.Nickname);
         }
 
@@ -92,7 +92,7 @@ namespace Client {
             bool ex = false;
             while (gameModel.IsRunning) {
                 try {
-                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp))!;
+                    NicknameCell nicknameCell = JsonSerializer.Deserialize<NicknameCell>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
                     if (nicknameCell.Nickname == "cmd:Close") gameModel.IsRunning = false;
                     else MessageBox.Show(nicknameCell.Nickname);                                       
                 }
@@ -102,7 +102,7 @@ namespace Client {
                 }
             }
             if (!ex) {
-                gameModel.Winner = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(serverTcp))!;
+                gameModel.Winner = JsonSerializer.Deserialize<Player>(await TCP.ReceiveVariable(serverTcp), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
                 if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
             }
             serverTcp.Dispose();

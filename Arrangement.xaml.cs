@@ -21,56 +21,37 @@ namespace Client {
     /// Логика взаимодействия для Arrangement.xaml
     /// </summary>
     public partial class Arrangement : Window {
-        bool isHost;
-        bool hasSent;
-        string gameId;
-        Task runServer;
-        Player player;
-        List<Player> players;
-        CreateGameModel createGameModel;
         MainWindow mainWindow;
-        int shipsCounter;
-        List<int> shipsCounters;
-        TcpClient serverTcp;
+        ArrangementModel arrangementModel;
 
         public Arrangement(bool isHost, string gameId, Player player, List<Player> players, CreateGameModel createGameModel, MainWindow mainWindow, Task runServer, TcpClient serverTcp) {
             InitializeComponent();
 
-            this.isHost = isHost;
-            hasSent = false;
-            this.gameId = gameId;
-            this.player = player;
-            this.players = players;
-            this.createGameModel = createGameModel;
-            this.mainWindow = mainWindow;
-            this.serverTcp = serverTcp;
+            arrangementModel = new ArrangementModel(isHost, false, gameId, player, players, createGameModel, serverTcp);
 
-            shipsCounter = createGameModel.FleetSize;
-            shipsCounters = createGameModel.Ships[createGameModel.FleetSizes.IndexOf(shipsCounter)];
-
-            DataContext = player;            
+            DataContext = arrangementModel;            
                         
             if (isHost) {
-                this.runServer = runServer;
+                arrangementModel.RunServer = runServer;
             }            
         }
 
         private void SelectCell(object sender, RoutedEventArgs e) {
-            if (hasSent) { MessageBox.Show("You have already sent your arrangement!"); return; }
+            if (arrangementModel.HasSent) { MessageBox.Show("You have already sent your arrangement!"); return; }
 
             Button button = (Button)sender;
             OneCell cell = (OneCell)button.DataContext;
 
             if (cell.IsShipHere) {
                 cell.IsShipHere = false;
-                shipsCounter++;
+                arrangementModel.ShipsCounter++;
 
-                int length = OneCell.CountLength(0, cell, new OneCell(new XY()), player.Cells);
-                shipsCounters[length]++;
-                shipsCounters[length + 1]--;
+                int length = OneCell.CountLength(0, cell, new OneCell(new XY()));
+                arrangementModel.ShipsCounters[length]++;
+                arrangementModel.ShipsCounters[length + 1]--;
             }
 
-            else if (!cell.IsShipHere && shipsCounter != 0) {
+            else if (!cell.IsShipHere && arrangementModel.ShipsCounter != 0) {
                 int count = 0;
                 foreach (OneCell? cel in cell.Neighboors) {
                     if (cel is null) continue;
@@ -78,52 +59,62 @@ namespace Client {
                     if (count > 1) return;
                 }
 
-                int length = OneCell.CountLength(0, cell, new OneCell(new XY()), player.Cells);
-                if (shipsCounters[length] != 0) {
+                int length = OneCell.CountLength(0, cell, new OneCell(new XY()));
+                if (arrangementModel.ShipsCounters[length] != 0) {
                     cell.IsShipHere = true;
-                    shipsCounter--;
-                    shipsCounters[length]--;
+                    arrangementModel.ShipsCounter--;
+                    arrangementModel.ShipsCounters[length]--;
                     if (length - 1 >= 0)
-                        shipsCounters[length - 1]++;
+                        arrangementModel.ShipsCounters[length - 1]++;
                 }
             }
         }
 
-        private async void ArrangementClient(string gameId) {
-            await serverTcp.SendMessage(MessageType.Arrangement_ClientToServer_Player, player!);
+        private async Task ArrangementClient() {
+            await arrangementModel.ServerTcp.SendMessage(MessageType.Arrangement_ClientToServer_Player, arrangementModel.Player!);
+            arrangementModel.HasSent = true;
 
             while (true) {
                 try {
-                    Message namesMessage = await serverTcp.ReceiveMessage();
-                    if (namesMessage.Type == MessageType.Arrangement_ServerToClient_Close)
+                    Message namesMessage = await arrangementModel.ServerTcp.ReceiveMessage();
+                    if (namesMessage.Type == MessageType.Arrangement_ServerToClient_Close) {
+                        if (!arrangementModel.IsHost) await arrangementModel.ServerTcp.SendMessage(MessageType.Lobby_ClientToServer_Exit);
                         break;
+                    }
+                    else if (namesMessage.Type == MessageType.Arrangement_ServerToClient_Wait) {
+                        MessageBox.Show("Wait for all players!");
+                    }
                 }
-                catch (Exception) {
-                    serverTcp.Dispose();
+                catch (Exception ex) {
+                    arrangementModel.ServerTcp.Dispose();
+                    MessageBox.Show(ex.Message);
                     break;
                 }
             }
 
-            Game game = new Game(players, gameId, players.IndexOf(player), mainWindow, runServer, serverTcp);
+            Game game = new Game(mainWindow, arrangementModel);
             this.Visibility = Visibility.Hidden;
             game.ShowDialog();
         }
 
-        private async void Continue(object sender, RoutedEventArgs e) {
-            if (shipsCounter != 0) { MessageBox.Show($"Use all ships! Rest is {shipsCounter}"); return; }
-            ArrangementClient(gameId);
-            hasSent = true;
-            if (isHost) {
-                await serverTcp.SendMessage(MessageType.Arrangement_ClientToServer_Close);
+        private async void Continue(object sender, RoutedEventArgs e) {            
+            if (arrangementModel.IsHost) {
+                await arrangementModel.ServerTcp.SendMessage(MessageType.Arrangement_ClientToServer_Close);
             }
         }
 
         private async void Exit(object sender, RoutedEventArgs e) {
-            if (isHost) {
-                await serverTcp.SendMessage(MessageType.Arrangement_ClientToServer_Exit);
-            }
+            await arrangementModel.ServerTcp.SendMessage(MessageType.Arrangement_ClientToServer_Exit);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
+
+        private async void Send(object sender, RoutedEventArgs e) {
+            if (arrangementModel.ShipsCounter != 0) {
+                MessageBox.Show($"Use all ships! Rest is {arrangementModel.ShipsCounter}");
+                return;
+            }
+            await ArrangementClient();
+        }
     }
 }

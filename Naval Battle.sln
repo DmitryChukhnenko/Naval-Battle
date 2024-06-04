@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "Client.csproj", "{528B904B-2104-432B-A3E0-4CB98E3E1A1C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameData", "..\GameData\GameData.csproj", "{3980331B-D6BA-4CCF-A97D-6EA58E2BC0CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{528B904B-2104-432B-A3E0-4CB98E3E1A1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{528B904B-2104-432B-A3E0-4CB98E3E1A1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{528B904B-2104-432B-A3E0-4CB98E3E1A1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3980331B-D6BA-4CCF-A97D-6EA58E2BC0CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3980331B-D6BA-4CCF-A97D-6EA58E2BC0CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3980331B-D6BA-4CCF-A97D-6EA58E2BC0CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3980331B-D6BA-4CCF-A97D-6EA58E2BC0CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

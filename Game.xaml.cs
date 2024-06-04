@@ -52,23 +52,13 @@ namespace Client {
     /// </summary>
     public partial class Game : Window {
         GameModel gameModel;
-        int index;
-        Task runServer;
-        Task runClient;
         MainWindow mainWindow;
-        TcpClient serverTcp;
 
-        public Game(List<Player> players, string gameId, int index, MainWindow mainWindow, Task runServer, TcpClient serverTcp) {
+        public Game(MainWindow mainWindow, ArrangementModel arrangementModel) {
             InitializeComponent();
-            gameModel = new GameModel(players, gameId);
-            this.index = index;
-            this.mainWindow = mainWindow;            
 
-            this.runServer = runServer;
-
-            this.serverTcp = serverTcp;
-
-            runClient = Task.Run(() => ArrangementClient());
+            gameModel = new GameModel(arrangementModel, Task.Run(() => GameClient()));
+            this.mainWindow = mainWindow;     
 
             DataContext = gameModel;
         }
@@ -79,41 +69,81 @@ namespace Client {
             GroupBox groupBox = GTVisualTreeHelper.FindVisualParent<GroupBox>(button);
             Player player = (Player)groupBox.DataContext;
 
-            if (cell is null || gameModel.Turn != index || !cell.IsFogHere || player.Cells.Contains(cell)) return;
-
-            await serverTcp.SendMessage(MessageType.Game_ClientToServer_NicknameCell, new NicknameCell(player.Nickname, cell));
+            if (cell is not null && gameModel.Turn == gameModel.Index && cell.IsFogHere && player.Cells.Contains(cell)) 
+                await gameModel.ServerTcp.SendMessage(MessageType.Game_ClientToServer_NicknameCell, new NicknameCell(player.Nickname, cell));
         }
 
         
-        private async Task ArrangementClient() {
+        private async Task GameClient() {
             while (gameModel.IsRunning) {
                 try {
-                    Message message = await serverTcp.ReceiveMessage();
+                    Message message = await gameModel.ServerTcp.ReceiveMessage();
 
-                    if (message.Type == MessageType.Game_ServerToClient_YouLost) {
-                        gameModel.Players[index].HasLost = true;
-                    }
+                    switch (message.Type) {                        
+                        case MessageType.Game_ServerToClient_YouLost: {
+                                gameModel.Players[gameModel.Index].HasLost = true;
+                                break;
+                            }                            
+                        case MessageType.Game_ServerToClient_Move: {
+                                message.ExpectType(MessageType.Game_ServerToClient_Move);
+                                Move move = message.Deserialize1Arg<Move>();
+                                gameModel.Turn++;
 
-                    else if (message.Type == MessageType.Game_ServerToClient_Winner) {
-                        gameModel.IsRunning = false;
+                                Player player = new();
+                                foreach (Player plr in gameModel.Players) {
+                                    if (plr.Nickname == move.Nickname) player = plr;
+                                }
+                                OneCell cell = new OneCell();
+                                foreach (OneCell cel in player.Cells) {
+                                    if (cel.Point.Equals(move.Cell.Point)) cell = cel;
+                                }
+                                cell = move.Cell;
 
-                        message.ExpectType(MessageType.Game_ServerToClient_Winner);
-                        gameModel.Winner = message.Deserialize1Arg<Player>();
-                        if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
-                    }
+                                MessageBox.Show(move.Message);
 
-                    else {
-                        message.ExpectType(MessageType.Game_ServerToClient_NicknameCell);
-                        NicknameCell nicknameCell = message.Deserialize1Arg<NicknameCell>();
-                        gameModel.Turn++;
-                        MessageBox.Show(nicknameCell.Nickname);
+                                break;
+                            }
+                        case MessageType.Game_ServerToClient_ChangedCells: {
+                                message.ExpectType(MessageType.Game_ServerToClient_ChangedCells);
+                                PlayerList playerList = message.Deserialize1Arg<PlayerList>();
+
+                                Player player = new();
+                                foreach (Player plr in gameModel.Players) {
+                                    if (plr.Nickname == playerList.Nickname) player = plr;
+                                }
+
+                                List<OneCell> changed = playerList.Changed;
+                                XY startPoint = changed[0].Point;
+                                XY endPoint = changed[^1].Point;
+                                int rowBig = (int) Math.Sqrt(player.Cells.Count);
+                                int rowSml = endPoint.X-startPoint.X;
+
+                                for (int y = startPoint.Y; y < endPoint.Y; y++) {
+                                    for (int x = startPoint.X; x < endPoint.X; x++) {
+                                        player.Cells[y*rowBig + x] = changed[y*rowSml + x];
+                                    }
+                                }
+
+                                break;
+                            }
+                        case MessageType.Game_ServerToClient_Winner: {
+                                gameModel.IsRunning = false;
+
+                                message.ExpectType(MessageType.Game_ServerToClient_Winner);
+                                gameModel.Winner = message.Deserialize1Arg<Player>();
+                                if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
+
+                                break;
+                            }
+                        default: break;
                     }
                 }
-                catch (Exception) {
+                catch (Exception ex) {
                     gameModel.IsRunning = false;
+                    MessageBox.Show(ex.Message);
                 }
             }
-            serverTcp.Dispose();
+            gameModel.ServerTcp.Dispose();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);

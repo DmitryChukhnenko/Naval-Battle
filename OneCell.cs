@@ -11,19 +11,19 @@ namespace Client {
     public class OneCell : BindableBase {
         public XY Point;
 
-        public bool isShipHere;
+        public bool isShipHere = false;
         public bool IsShipHere {
             get => isShipHere;
             set => SetProperty(ref isShipHere, value);
         }
 
-        public bool isDamagedShipHere;
+        public bool isDamagedShipHere = false;
         public bool IsDamagedShipHere {
             get => isShipHere;
             set => SetProperty(ref isDamagedShipHere, value);
         }
 
-        public bool isFogHere;
+        public bool isFogHere = false;
         public bool IsFogHere
         {
             get => isFogHere;
@@ -33,9 +33,6 @@ namespace Client {
         
         public OneCell(XY point) {
             Point = point;
-            IsShipHere = false;
-            IsDamagedShipHere = false;
-            IsFogHere = false;
         }
 
         public OneCell(XY point, bool isShipHere, bool isDamagedShipHere, bool isFogHere) : this(point) {
@@ -46,13 +43,11 @@ namespace Client {
 
         public OneCell() { }
 
-        [JsonIgnore] public OneCell?[,] Neighboors { get; set; } = new OneCell[3, 3];
+        [JsonIgnore] public List<OneCell?> Neighboors { get; set; } = new List<OneCell?>();
         public void AddNeighboors(List<OneCell> cells) {
-            for (int y = -1; y <= 1; y++) {
-                for (int x = -1; x <=1; x++) {
-                    if (x == 0 && y == 0) Neighboors[1 + y, 1 + x] = null;
-                    else Neighboors[1 + y, 1 + x] = FindCell(cells, new XY(Point.X + x, Point.Y + y));
-                }
+            for (int i = 0; i <= 8; i++) {
+                if (i == 4) Neighboors.Add(null);
+                else Neighboors.Add(FindCell(cells, new XY(Point.X + (i%3)-1, Point.Y + (i / 3) - 1)));
             }
         }
 
@@ -61,17 +56,60 @@ namespace Client {
             return (coords.X >= 0 && coords.Y >= 0 && coords.X < row && coords.Y < row) ? cells[coords.X + coords.Y*row] : null;
         }
          
-        public static int CountLength(int length, OneCell cell, OneCell previous, List<OneCell> cells) {
-            OneCell? left = cell.Neighboors[1, 0];
-            OneCell? up = cell.Neighboors[0, 1];
-            OneCell? right = cell.Neighboors[1, 2];
-            OneCell? down = cell.Neighboors[2, 1];
+        public static int CountLength(int length, OneCell cell, OneCell previous) {
+            OneCell? left = cell.Neighboors[3];
+            OneCell? up = cell.Neighboors[1];
+            OneCell? right = cell.Neighboors[5];
+            OneCell? down = cell.Neighboors[7];
 
-            if (left is not null && left.IsShipHere && !previous.Equals(left)) return CountLength(++length, left, cell, cells);
-            else if (up is not null && up.IsShipHere && !previous.Equals(up)) return CountLength(++length, up, cell, cells);
-            else if (right is not null && right.IsShipHere && !previous.Equals(right)) return CountLength(++length, right, cell, cells);
-            else if (down is not null && down.IsShipHere && !previous.Equals(down)) return CountLength(++length, down, cell, cells);
+            if (left is not null && left.IsShipHere) return CountLength(++length, left, cell);
+            else if (up is not null && up.IsShipHere) return CountLength(++length, up, cell);
+            else if (right is not null && right.IsShipHere) return CountLength(++length, right, cell);
+            else if (down is not null && down.IsShipHere) return CountLength(++length, down, cell);
             return length;
+        }
+
+        public static bool IsAlive(OneCell cell, OneCell previous) {
+            OneCell? left = cell.Neighboors[3];
+            OneCell? up = cell.Neighboors[1];
+            OneCell? right = cell.Neighboors[5];
+            OneCell? down = cell.Neighboors[7];
+
+            if (left is not null && left.IsShipHere) {
+                if (left.IsDamagedShipHere) return IsAlive(left, cell);
+                else return true;
+            }
+            if (up is not null && up.IsShipHere) {
+                if (up.IsDamagedShipHere) return IsAlive(up, cell);
+                else return true;
+            }
+            if (right is not null && right.IsShipHere) {
+                if (right.IsDamagedShipHere) return IsAlive(right, cell);
+                else return true;
+            }
+            if (down is not null && down.IsShipHere) {
+                if (down.IsDamagedShipHere) return IsAlive(down, cell);
+                else return true;
+            }
+            if (cell.IsShipHere && cell.IsDamagedShipHere) return false;
+            else return true;
+        }
+
+        public static List<OneCell> AfterSunk (List<OneCell> result, OneCell cell, OneCell previous) {
+            OneCell? left = cell.Neighboors[3];
+            OneCell? up = cell.Neighboors[1];
+            OneCell? right = cell.Neighboors[5];
+            OneCell? down = cell.Neighboors[7];
+
+            result.AddRange(cell.Neighboors.Where(cel => cel is not null)!);
+
+            if (left is not null && left.IsShipHere && left.IsDamagedShipHere) AfterSunk(result, left, cell);
+            if (up is not null && up.IsShipHere && up.IsDamagedShipHere) AfterSunk(result, up, cell);            
+            if (right is not null && right.IsShipHere && right.IsDamagedShipHere) AfterSunk(result, right, cell);
+            if (down is not null && down.IsShipHere && down.IsDamagedShipHere) AfterSunk(result, down, cell);
+
+            if (cell.IsShipHere && cell.IsDamagedShipHere) result.Add(cell);
+            return result.Distinct().OrderBy(cel => cel.Point.X*cel.Point.Y).ToList();
         }
 
         public static List<OneCell> CreateEmptyList(int fieldSize) {
@@ -89,11 +127,9 @@ namespace Client {
         }
 
         public override bool Equals(object obj) {
-            OneCell cell = new();
-            if (obj is OneCell) {
-                cell = obj as OneCell;
-            }
-            else return false;
+            OneCell? cell = obj as OneCell;
+            if (cell is null)
+                return false;
 
             if (cell.Point.Equals(Point) && cell.IsShipHere == IsShipHere && cell.IsFogHere == IsFogHere && cell.IsDamagedShipHere == IsDamagedShipHere)
                 return true;

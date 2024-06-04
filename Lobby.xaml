@@ -13,7 +13,8 @@
                 <TextBox Text="{Binding GameId}" Margin="5" IsReadOnly="True"/>
             </GroupBox>
             <Button Click="Continue" Content="Play"
-                    DockPanel.Dock="Bottom" Margin="5"/>
+                    DockPanel.Dock="Bottom" Margin="5"
+                    Visibility="{Binding IsHostVisibility}"/>
             <GroupBox Header="Players" Margin="5">
                 <ListBox ItemsSource="{Binding Players}"/>
             </GroupBox>            

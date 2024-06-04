@@ -65,12 +65,16 @@ namespace Client {
             if (!(obj is Player)) return false;
             Player other = obj as Player;
 
-            if (other.Nickname != Nickname) return false;
+            if (other!.Nickname != Nickname) return false;
             if (other.HasLost != HasLost) return false;
             if (other.Cells.Count != Cells.Count) return false;
             if (other.FieldSize != FieldSize) return false;
             if (other.FleetSize != FleetSize) return false;
             return true;
+        }
+
+        public override int GetHashCode() {
+            throw new NotImplementedException();
         }
     }
 }

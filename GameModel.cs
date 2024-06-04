@@ -2,13 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Client
 {
     internal class GameModel : BindableBase
-    {
+    {         
+        public int Index {get; set;}
+        public Task RunServer { get; set; }
+        public Task RunClient { get; set; }
+        public TcpClient ServerTcp { get; set; }
+
         private List<Player> players;
         public List<Player> Players {
             get => players;
@@ -43,11 +49,22 @@ namespace Client
             set => SetProperty(ref isRunning, value);
         }
 
-        public GameModel(List<Player> players, string gameId)
+        private int fieldSize;
+        public int FieldSize {
+            get => fieldSize;
+            set => SetProperty(ref fieldSize, value);
+        }
+
+        public GameModel(ArrangementModel arrangementModel, Task runClient)
         {
-            Players = players;
+            Index = arrangementModel.Players.IndexOf(arrangementModel.Player);
+            RunServer = arrangementModel.RunServer;
+            RunClient = runClient;
+            ServerTcp = arrangementModel.ServerTcp;
+            Players = arrangementModel.Players;
+            GameId = arrangementModel.GameId;
+            FieldSize = arrangementModel.FieldSize;
             Turn = 0;
-            GameId = gameId;
             IsRunning = true;
         }
     }

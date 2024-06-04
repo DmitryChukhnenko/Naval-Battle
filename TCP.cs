@@ -37,7 +37,7 @@ namespace Client {
         // Все приватные методы — только для внутреннего использования
         private static async Task<byte[]> ReceiveFixed(this TcpClient client, int length) {
             byte[] buffer = new byte[length];
-            await client.GetStream().ReadAsync(buffer, 0, buffer.Length);
+            await client.GetStream().ReadExactlyAsync(buffer, 0, buffer.Length);
             return buffer;
         }
 

@@ -42,11 +42,12 @@ namespace Client {
             using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0)) {
                 socket.Connect("8.8.8.8", 65530);
                 IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
-                ip = endPoint.Address.ToString();
+                ip = endPoint!.Address.ToString();
             }
 
 
             lobbyModel.GameId = ip;
+            lobbyModel.IsHostVisibility = isHost ? Visibility.Visible : Visibility.Collapsed;
             DataContext = lobbyModel;
 
             // на нём создаём сервер, отвечающий за список игроков, на отдельном потоке
@@ -62,6 +63,7 @@ namespace Client {
             this.mainWindow = mainWindow;
 
             lobbyModel.GameId = gameId;
+            lobbyModel.IsHostVisibility = isHost ? Visibility.Visible : Visibility.Collapsed;
             DataContext = lobbyModel;
 
             // обращаемся к серверу за списком игроков (по gameId) по кд на отдельном потоке
@@ -80,14 +82,17 @@ namespace Client {
             while (true) {
                 try {
                     Message namesMessage = await serverTcp.ReceiveMessage();
-                    if (namesMessage.Type == MessageType.Lobby_ServerToClient_Close)
+                    if (namesMessage.Type == MessageType.Lobby_ServerToClient_Close) {
+                        if (!isHost) await serverTcp.SendMessage(MessageType.Lobby_ClientToServer_Exit);
                         break;
+                    }
 
                     namesMessage.ExpectType(MessageType.Lobby_ServerToClient_Name);
                     lobbyModel.Players = namesMessage.Deserialize1Arg<string[]>();
                 }
-                catch (Exception) {
+                catch (Exception ex) {
                     serverTcp.Dispose();
+                    MessageBox.Show(ex.Message);
                     break;
                 }
             }
@@ -103,21 +108,20 @@ namespace Client {
                     .ExpectType(MessageType.Lobby_ServerToClient_CreateGameModel)
                     .Deserialize1Arg<CreateGameModel>();
 
-            List<OneCell> cells = OneCell.CreateEmptyList(createGameModel.FieldSize);
-
             Player player = new (); 
             List<Player> players = new List<Player>();
             foreach (string name in lobbyModel.Players) {
-               Player tmp = new Player(name, cells, createGameModel.FleetSize);
-               if (name == nickname) player = tmp;
-            }
+                Player tmp = new Player(name,
+                    OneCell.CreateEmptyList(createGameModel.FieldSize),
+                    createGameModel.FleetSize);
 
-            foreach (Player plr in players) {
-                if (plr != player) {
-                    foreach (OneCell cell in plr.Cells) {
+                if (name == nickname) player = tmp;
+                else {
+                    foreach (OneCell cell in tmp.Cells)
                         cell.isFogHere = true;
-                    }
                 }
+                
+                players.Add(tmp);
             }
 
             Arrangement arrangement = new Arrangement(isHost, lobbyModel.GameId, player, players, createGameModel, mainWindow, runServer, serverTcp);

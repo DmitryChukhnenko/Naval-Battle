@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 
 namespace Client {
     internal class PlayerList{
-        public List<Player> Players { get; set; }
+        public string Nickname { get; set; }
+        public List<OneCell> Changed { get; set; }
 
-        public PlayerList(List<Player> players) {
-            Players = players;
+        public PlayerList(string nickname, List<OneCell> changed) {
+            Nickname = nickname;
+            Changed = changed;
         }
 
         public PlayerList() { }

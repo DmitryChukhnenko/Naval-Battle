@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Client {
     internal class LobbyModel : BindableBase {
@@ -17,6 +18,12 @@ namespace Client {
         public IList<string> Players {
             get => players;
             set => SetProperty(ref players, value);
+        }
+
+        private Visibility isHostVisibility;
+        public Visibility IsHostVisibility {
+            get => isHostVisibility;
+            set => SetProperty(ref isHostVisibility, value);
         }
 
         public void Add(string player) {

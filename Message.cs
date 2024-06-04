@@ -12,6 +12,7 @@ public enum MessageType {
     Lobby_ClientToServer_CreateGameModel,
     Lobby_ClientToServer_MyName,
     Lobby_ClientToServer_Close,
+    Lobby_ClientToServer_Exit,
 
     Lobby_ServerToClient_Close,
     Lobby_ServerToClient_CreateGameModel,
@@ -21,12 +22,14 @@ public enum MessageType {
     Arrangement_ClientToServer_Close,
     Arrangement_ClientToServer_Exit,
 
+    Arrangement_ServerToClient_Wait,
     Arrangement_ServerToClient_Close,
 
     Game_ClientToServer_NicknameCell,
 
     Game_ServerToClient_YouLost,
-    Game_ServerToClient_NicknameCell,
+    Game_ServerToClient_Move,
+    Game_ServerToClient_ChangedCells,
     Game_ServerToClient_Winner,
 }
 

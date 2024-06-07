@@ -92,7 +92,8 @@ namespace Client {
                 }
                 catch (Exception ex) {
                     serverTcp.Dispose();
-                    MessageBox.Show(ex.Message);
+                    MessageBox.Show(ex.ToString());
+                    Close();
                     break;
                 }
             }

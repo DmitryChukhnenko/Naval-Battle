@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Lobby" Height="450" Width="800"
+        WindowState="Maximized"
+        FontSize="30"
+        Title="Lobby" Height="600" Width="900"
         Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
@@ -14,13 +16,12 @@
             </GroupBox>
             <Button Click="Continue" Content="Play"
                     DockPanel.Dock="Bottom" Margin="5"
-                    Visibility="{Binding IsHostVisibility}"/>
+                    Visibility="{Binding IsHostVisibility}"
+                    FontSize="30"/>
             <GroupBox Header="Players" Margin="5">
                 <ListBox ItemsSource="{Binding Players}"/>
             </GroupBox>            
         </DockPanel>
-        <Viewbox>
-            <Label Content="Naval Battle" FontWeight="Bold"/>
-        </Viewbox>
+        <Image Source="mainPictureUnRed.png" Stretch="Fill"></Image>
     </DockPanel>
 </Window>

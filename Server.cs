@@ -12,6 +12,8 @@ using System.Windows;
 using System.Collections.ObjectModel;
 using System.Xml.Linq;
 using System.Threading;
+using System.Collections.Frozen;
+using GameData;
 
 namespace Client {   
 public class Server {
@@ -37,7 +39,7 @@ public class Server {
 
         public async void ListenToClient(TcpClient from) {
             IReadOnlyList<TcpClient> copy;
-            IReadOnlyList<Player> playersCopy;
+            List<Player> playersCopy;
 
             // Получение данных об игре от хоста и пересылка всем подключившимся
             if (clients[0] == from) createGameModel = (await from.ReceiveMessage())
@@ -75,17 +77,18 @@ public class Server {
                     isEx = true;
                     lock (clients) clients.Remove(from);
                     from.Dispose();
-                    MessageBox.Show(ex.Message);
+                    MessageBox.Show(ex.ToString());
                     return;
                 }                
             }
 
             // Расстановка
             // Получение данных об игроке
-            Player newOne = (await from.ReceiveMessage())
+            Player me = (await from.ReceiveMessage())
                     .ExpectType(MessageType.Arrangement_ClientToServer_Player)
-                    .Deserialize1Arg<Player>(); 
-            lock (players) players.Add(newOne);
+                    .Deserialize1Arg<Player>();             
+            lock (players) players.Add(me);
+            foreach (OneCell cel in me.Cells) cel.AddNeighboors(me.Cells);
 
             // Ожидание закрытия расстановки
             run = !isEx;
@@ -105,113 +108,134 @@ public class Server {
                     }
                     else if (message.Type == MessageType.Arrangement_ClientToServer_Exit) {
                         lock (clients) clients.Remove(from);
-                        lock (players) players.Remove(newOne);
+                        lock (players) players.Remove(me);
                         from.Dispose();
                         return;
                     }
+                    else if (message.Type == MessageType.Lobby_ClientToServer_Exit) break;
                 }
                 // Код на исключения
                 catch (Exception ex) {
                     run = false;
                     isEx = true;
                     lock (clients) clients.Remove(from);
-                    lock (players) players.Remove(newOne);
+                    lock (players) players.Remove(me);
                     from.Dispose();
-                    MessageBox.Show(ex.Message);
+                    MessageBox.Show(ex.ToString());
                     return;
                 }
             }
 
+            // Сортируем игроков, чтобы каждый из них соответсвовал порядку подключения
+            playersCopy = new List<Player>();
+            lock (players) {
+                foreach (string name in names) {
+                    playersCopy.Add(players.Find(plr => plr.Nickname == name)!);
+                }
+                players = playersCopy;
+            }            
+            string staticPlayers = JsonSerializer.Serialize<List<Player>>(playersCopy);
+            List<string> moves = new List<string>();
+
             // Ход игры
-            Player winner = new();
+            Player winner = null!;
             run = !isEx;
             while (run) {
                 try {
                     // Получение данных о ходе и их извлечение
-                    NicknameCell nicknameCell = (await from.ReceiveMessage())
-                    .ExpectType(MessageType.Game_ClientToServer_NicknameCell)
-                    .Deserialize1Arg<NicknameCell>();
+                    Message message = await from.ReceiveMessage();
+                    if (message.Type == MessageType.Game_ClientToServer_NicknameCell) {
+                        message.ExpectType(MessageType.Game_ClientToServer_NicknameCell);
 
-                    Player player = new();
-                    lock (players) playersCopy = players.ToList();
-                    foreach (Player plr in playersCopy) {
-                        if (plr.Nickname == nicknameCell.Nickname) player = plr;
-                    }
+                        moves.Add(message.Args[0]);
+                        NicknamePoint nicknamePoint = message.Deserialize1Arg<NicknamePoint>();
 
-                    OneCell cell = new OneCell();
-                    foreach (OneCell cel in player.Cells) {
-                        if (cel.Point.Equals (nicknameCell.Cell.Point)) cell = cel;
-                    }
+                        Player player;
+                        lock (players) player = players.FirstOrDefault(plr => plr.Nickname == nicknamePoint.Nickname)!;
 
-                    // Логика хода
-                    string message;
+                        OneCell cell = OneCell.FindCell(player.Cells, nicknamePoint.Point)!;
 
-                    cell.IsFogHere = false;
-                    // Если попал
-                    if (cell.IsShipHere) {
-                        message = "Strike!";
-                        cell.IsDamagedShipHere = true;
-                        player.FleetSize--;
+                        // Логика хода
+                        string result;
 
-                        // Если кораблей не осталось
-                        if (player.FleetSize == 0) {
-                            player.HasLost = true;
-                            message += $" Player {nicknameCell.Nickname} has lost!";
+                        // Если попал
+                        if (cell.IsShipHere) {
+                            result = "Strike!";
+                            cell.IsDamagedShipHere = true;
+                            player.FleetSize--;
 
-                            int notLost = 0;
-                            Player last = new Player();
-                            lock (players) playersCopy = players.ToList();
-                            foreach (Player p in playersCopy) {
-                                if (!p.HasLost) { notLost++; last = p; }
+                            // Если кораблей не осталось
+                            if (player.FleetSize == 0) {
+                                player.HasLost = true;
+                                result += $" Player {nicknamePoint.Nickname} has lost!";
+
+                                int notLost = 0;
+                                Player last = new Player();
+                                lock (players) playersCopy = players.ToList();
+                                foreach (Player p in playersCopy) {
+                                    if (!p.HasLost) { notLost++; last = p; }
+                                }
+                                run = notLost > 1;
+
+                                // Отправка победителя (и данных об игре) - добавить
+                                if (notLost == 1) {
+                                    winner = last;
+                                    lock (clients) copy = clients.ToList();
+                                    foreach (TcpClient to in copy) {
+                                        await to.SendMessage(MessageType.Game_ServerToClient_Winner, winner);
+                                    }
+
+                                    // Отправка в бд игр
+                                    using GameDataContext db = new();
+                                    db.Saves.Add(new(staticPlayers, moves));
+                                    db.SaveChanges();
+
+                                    lock (players) players.Remove(me);
+                                    lock (clients) clients.Remove(from);
+                                    from.Dispose();
+                                }
                             }
-                            if (notLost == 1) winner = last;
-                            run = notLost > 1;
+
+                            // Если корабль уничтожен
+                            else if (!OneCell.IsAlive(cell, new())) {
+                                List<OneCell> changedList = OneCell.AfterSunk(new(), cell, new());
+                                int width = (int)Math.Sqrt(changedList.Count);
+                                ObservableCollection<OneCell> changed = new(changedList.Distinct().OrderBy(cel => cel.Point.X + cel.Point.Y * width));
+
+                                lock (clients) copy = clients.ToList();
+                                foreach (TcpClient to in copy) {
+                                    await to.SendMessage(MessageType.Game_ServerToClient_ChangedCells, new PlayerList(nicknamePoint.Nickname, changed));
+                                }
+                            }
+                        }
+                        else result = "Miss!";
+
+                        // Отправка результата хода
+                        // Если игрок проиграл
+                        if (player.HasLost) {
+                            result += $" Player {player.Nickname} has lost!";
+                            await clients[players.IndexOf(player)].SendMessage(MessageType.Game_ServerToClient_YouLost);
                         }
 
-                        // Если корабль уничтожен
-                        if (!OneCell.IsAlive(cell, new())) {
-                            List<OneCell> changed = new();
-                            OneCell.AfterSunk(changed, cell, new());
-
-                            lock (clients) copy = clients.ToList();
-                            foreach (TcpClient to in copy) {
-                                await to.SendMessage(MessageType.Game_ServerToClient_ChangedCells, new PlayerList(nicknameCell.Nickname, changed));
-                            }
+                        lock (clients) copy = clients.ToList();
+                        foreach (TcpClient to in copy) {
+                            await to.SendMessage(MessageType.Game_ServerToClient_Move, new Move(result, nicknamePoint.Nickname, cell));
                         }
-                    }
-                    else message = "Miss!";
-
-                    // Отправка результата хода
-                    // Если игрок проиграл
-                    if (player.HasLost) {
-                        message += $" Player {player.Nickname} has lost!";
-                        await clients[players.IndexOf(player)].SendMessage(MessageType.Game_ServerToClient_YouLost);
-                    }
-
-                    lock (clients) copy = clients.ToList();
-                    foreach (TcpClient to in copy) {
-                        await to.SendMessage(MessageType.Game_ServerToClient_Move, new Move(message, nicknameCell.Nickname, cell));
                     }
                 }
                 // Код на исключения
                 catch (Exception ex) {
                     run = false;
                     isEx = true;
-                    MessageBox.Show(ex.Message);
+
+                    lock (players) players.Remove(me);
+                    lock (clients) clients.Remove(from);
+                    from.Dispose();
+
+                    //MessageBox.Show(ex.ToString());
                     return;
                 }
-            }
-            // Отправка победителя
-            if (!isEx) {
-                lock (clients) copy = clients.ToList();
-                foreach (TcpClient to in copy) {
-                    await to.SendMessage(MessageType.Game_ServerToClient_Winner, winner);
-                }
-            }
-            lock (clients) clients.Remove(from);
-            from.Dispose();
-
-            // Отправка в бд игр
+            }                       
         }
     }
 }

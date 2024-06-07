@@ -5,30 +5,38 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="CreateGame" Height="450" Width="800"
+        WindowState="Maximized"
+        Title="CreateGame" Height="600" Width="900"
+        FontSize="30"
         Closing="Window_Closing">
     <UniformGrid Columns="1">
         <UniformGrid Rows="1">
-            <TextBlock Text="Select fleet size" Margin="10"
+            <Viewbox>
+                <TextBlock Text="Select fleet size" Margin="10"
                        TextAlignment="Center"/>
+            </Viewbox>
             <ComboBox ItemsSource="{Binding FleetSizes}"
-                      SelectedItem="{Binding FleetSize}"
-                      Margin="10"/>
+                    SelectedItem="{Binding FleetSize}"
+                    Margin="10"/>
         </UniformGrid>
         <UniformGrid Rows="1">
-            <TextBlock Text="Select field size" Margin="10"
-               TextAlignment="Center"/>
+            <Viewbox>
+                <TextBlock Text="Select field size" Margin="10"
+                    TextAlignment="Center"/>
+            </Viewbox>
             <ComboBox ItemsSource="{Binding FieldSizes}"
-              SelectedItem="{Binding FieldSize}"
-              Margin="10"/>
+                    SelectedItem="{Binding FieldSize}"
+                    Margin="10"/>
         </UniformGrid>
         <UniformGrid Rows="1">
-            <TextBlock Text="Select regime" Margin="10"
-               TextAlignment="Center"/>
+            <Viewbox>
+                <TextBlock Text="Select regime" Margin="10"
+                    TextAlignment="Center"/>
+            </Viewbox>
             <ComboBox ItemsSource="{Binding Regimes}"
-              SelectedItem="{Binding Regime}"
-              Margin="10"/>
+                    SelectedItem="{Binding Regime}"
+                    Margin="10"/>
         </UniformGrid>
-        <Button Margin="10" Padding="10" Click="Confirm" Content="Host"/>
+        <Button FontSize="30" Margin="10" Padding="10" Click="Confirm" Content="Host"/>
     </UniformGrid>
 </Window>

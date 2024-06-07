@@ -5,13 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Arrangement" Height="450" Width="800"
+        WindowState="Maximized"
+        FontSize="30"
+        Title="Arrangement" Height="600" Width="900"
         Closing="Window_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
-            <Button DockPanel.Dock="Bottom" Click="Continue" Content="Continue" Padding="15" Visibility="{Binding IsHostVisibility}"/>
-            <Button DockPanel.Dock="Bottom" Click="Send" Content="Send" Padding="15"/>
-            <Button DockPanel.Dock="Bottom" Click="Exit" Content="Exit" Padding="15"/>
+            <Button FontSize="30" DockPanel.Dock="Bottom" Click="Continue" Content="Continue" Padding="15" Visibility="{Binding IsHostVisibility}"/>
+            <Button FontSize="30" DockPanel.Dock="Bottom" Click="Exit" Content="Exit" Padding="15" Visibility="{Binding IsNotHostVisibility}"/>
+            <Button FontSize="30" DockPanel.Dock="Bottom" Click="Send" Content="Send" Padding="15"/>
             <TextBlock Opacity="100"/>
         </DockPanel>
 

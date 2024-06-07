@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -70,7 +72,7 @@ namespace Client {
             Player player = (Player)groupBox.DataContext;
 
             if (cell is not null && gameModel.Turn == gameModel.Index && cell.IsFogHere && player.Cells.Contains(cell)) 
-                await gameModel.ServerTcp.SendMessage(MessageType.Game_ClientToServer_NicknameCell, new NicknameCell(player.Nickname, cell));
+                await gameModel.ServerTcp.SendMessage(MessageType.Game_ClientToServer_NicknameCell, new NicknamePoint(player.Nickname, cell.Point));
         }
 
         
@@ -87,17 +89,12 @@ namespace Client {
                         case MessageType.Game_ServerToClient_Move: {
                                 message.ExpectType(MessageType.Game_ServerToClient_Move);
                                 Move move = message.Deserialize1Arg<Move>();
-                                gameModel.Turn++;
+                                gameModel.Turn = (gameModel.Turn + 1) % gameModel.Players.Count;
 
-                                Player player = new();
-                                foreach (Player plr in gameModel.Players) {
-                                    if (plr.Nickname == move.Nickname) player = plr;
-                                }
-                                OneCell cell = new OneCell();
-                                foreach (OneCell cel in player.Cells) {
-                                    if (cel.Point.Equals(move.Cell.Point)) cell = cel;
-                                }
-                                cell = move.Cell;
+                                Player player = gameModel.Players.FirstOrDefault(plr => plr.Nickname == move.Nickname)!;
+
+                                OneCell cell = OneCell.FindCell(player.Cells, move.Cell.Point)!;
+                                cell.CopyFrom(move.Cell);
 
                                 MessageBox.Show(move.Message);
 
@@ -107,20 +104,17 @@ namespace Client {
                                 message.ExpectType(MessageType.Game_ServerToClient_ChangedCells);
                                 PlayerList playerList = message.Deserialize1Arg<PlayerList>();
 
-                                Player player = new();
-                                foreach (Player plr in gameModel.Players) {
-                                    if (plr.Nickname == playerList.Nickname) player = plr;
-                                }
+                                Player player = gameModel.Players.FirstOrDefault(plr => plr.Nickname == playerList.Nickname)!;
 
-                                List<OneCell> changed = playerList.Changed;
+                                ObservableCollection<OneCell> changed = playerList.Changed;
                                 XY startPoint = changed[0].Point;
                                 XY endPoint = changed[^1].Point;
-                                int rowBig = (int) Math.Sqrt(player.Cells.Count);
-                                int rowSml = endPoint.X-startPoint.X;
+                                int rowBig = Squares.QuadNums[player.Cells.Count];
 
-                                for (int y = startPoint.Y; y < endPoint.Y; y++) {
-                                    for (int x = startPoint.X; x < endPoint.X; x++) {
-                                        player.Cells[y*rowBig + x] = changed[y*rowSml + x];
+                                for (int y = startPoint.Y, i = 0; y <= endPoint.Y; y++) {
+                                    for (int x = startPoint.X; x <= endPoint.X; x++, i++) {
+                                        int xCopy = x, yCopy = y, iCopy = i;
+                                        Dispatcher.Invoke(() => player.Cells[yCopy*rowBig + xCopy] = changed[iCopy]);
                                     }
                                 }
 
@@ -131,7 +125,12 @@ namespace Client {
 
                                 message.ExpectType(MessageType.Game_ServerToClient_Winner);
                                 gameModel.Winner = message.Deserialize1Arg<Player>();
-                                if (gameModel.Winner is not null) MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}.");
+
+                                if (gameModel.Winner is not null) {
+                                    if (gameModel.Winner.Equals(gameModel.Players[gameModel.Index]))
+                                        MessageBox.Show($"Game ended! Winner is you!");
+                                    else MessageBox.Show($"Game ended! Winner is {gameModel.Winner.Nickname}!");
+                                }
 
                                 break;
                             }
@@ -140,10 +139,12 @@ namespace Client {
                 }
                 catch (Exception ex) {
                     gameModel.IsRunning = false;
-                    MessageBox.Show(ex.Message);
+                    MessageBox.Show(ex.ToString());
+                    Close();
                 }
             }
             gameModel.ServerTcp.Dispose();
+            Close();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);

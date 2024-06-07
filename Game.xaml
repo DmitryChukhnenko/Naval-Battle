@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Game" Height="450" Width="800"
+        WindowState="Maximized"
+        Title="Game" Height="600" Width="900"
         Closing="Window_Closing">
     <ItemsControl ItemsSource="{Binding Players}">
         <ItemsControl.ItemTemplate>
@@ -14,15 +15,13 @@
                     <ItemsControl ItemsSource="{Binding Cells}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Viewbox Margin="5">
-                                    <Grid Width="50" Height="50">
-                                        <Button Click="Move" Width="50" Height="50">
-                                            <Button.Content>
-                                                <Image x:Name="image" Stretch="UniformToFill" Source="water.png"/>
-                                            </Button.Content>
-                                        </Button>
-                                    </Grid>
-                                </Viewbox>
+                                <Grid Width="50" Height="50" Margin="5">
+                                    <Button Click="Move" Width="50" Height="50">
+                                        <Button.Content>
+                                            <Image x:Name="image" Stretch="UniformToFill" Source="water.png"/>
+                                        </Button.Content>
+                                    </Button>
+                                </Grid>
 
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsShipHere}" Value="True">

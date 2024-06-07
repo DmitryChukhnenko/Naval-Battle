@@ -5,16 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        WindowState="Maximized"
+        Closing="Window_Closing"
+        FontSize="30"
+        Title="MainWindow" Height="600" Width="900">
     <DockPanel>        
         <UniformGrid Rows="1" DockPanel.Dock="Bottom">
             <GroupBox Header="Input game Id">
                 <UniformGrid Columns="1">
                     <TextBox Text="{Binding GameId}"/>
-                    <Button Click="PlayWithId" Content="Play"/>
+                    <Button FontSize="30" Click="PlayWithId" Content="Play"/>
                 </UniformGrid>
             </GroupBox>
-            <Button Click="HostGame" Content="Host"/>
+            <Button FontSize="30" Click="Saves" Content="Open saves"/>
+            <Button FontSize="30" Click="HostGame" Content="Host"/>
         </UniformGrid>
         
         <UniformGrid Rows="1" DockPanel.Dock="Bottom">
@@ -22,8 +26,9 @@
             <TextBox Text="{Binding Nickname}"/>
         </UniformGrid>
         
-        <Viewbox>
-            <Label Content="Naval Battle" FontWeight="Bold"/>
-        </Viewbox>
+        
+        <Grid Margin="0">
+            <Image Source="mainPicture.png" Stretch="UniformToFill"/>            
+        </Grid>        
     </DockPanel>
 </Window>

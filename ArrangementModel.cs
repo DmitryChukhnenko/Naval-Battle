@@ -25,6 +25,12 @@ namespace Client {
             set => SetProperty(ref isHostVisibility, value);
         }
 
+        private Visibility isNotHostVisibility;
+        public Visibility IsNotHostVisibility {
+            get => isNotHostVisibility;
+            set => SetProperty(ref isNotHostVisibility, value);
+        }
+
         private Player player;
         public Player Player {
             get => player;
@@ -40,13 +46,14 @@ namespace Client {
         public ArrangementModel(bool isHost, bool hasSent, string gameId, Player player, List<Player> players, CreateGameModel createGameModel, TcpClient serverTcp) {
             IsHost = isHost;
             IsHostVisibility = isHost ? Visibility.Visible : Visibility.Collapsed;
+            IsNotHostVisibility = isHost ? Visibility.Collapsed : Visibility.Visible;
             HasSent = hasSent;
             GameId = gameId;
             Player = player;
             Players = players;
             CreateGameModel = createGameModel;
 
-            FieldSize = (int) Math.Sqrt(createGameModel.FieldSize);
+            FieldSize = Squares.QuadNums[createGameModel.FieldSize];
             ShipsCounter = createGameModel.FleetSize;
             ShipsCounters = createGameModel.Ships[createGameModel.FleetSizes.IndexOf(ShipsCounter)];
 

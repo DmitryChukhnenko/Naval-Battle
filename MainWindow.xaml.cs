@@ -13,15 +13,17 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Client {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-public partial class MainWindow : Window {
+public partial class MainWindow : System.Windows.Window {
         MainWindowModel mainMenuModel;
         public CreateGame create;
         public Lobby lobby;
+        public Saves saves;
 
         public MainWindow() {
             InitializeComponent();
@@ -51,10 +53,11 @@ public partial class MainWindow : Window {
             create.ShowDialog();
         }
 
-        public void GoBack(Window window) {
+        public void GoBack(System.Windows.Window window) {
             Visibility = Visibility.Visible;
             if (create is not null && create != window) create.Close();
-            else if (lobby is not null && create != window) lobby.Close();
+            else if (lobby is not null && lobby != window) lobby.Close();
+            else if (saves is not null && saves != window) saves.Close();
         }
 
         private bool Check() {
@@ -63,6 +66,18 @@ public partial class MainWindow : Window {
                 return true;
             }
             return false;
+        }
+
+        private void Saves(object sender, RoutedEventArgs e) {
+            saves = new Saves(this);
+            this.Visibility = Visibility.Hidden;
+            saves.ShowDialog();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (create is not null) create.Close();
+            else if (lobby is not null) lobby.Close();
+            else if (saves is not null) saves.Close();
         }
     }
 }

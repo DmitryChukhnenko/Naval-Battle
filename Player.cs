@@ -1,6 +1,7 @@
 ﻿using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,8 +21,8 @@ namespace Client {
             set => SetProperty(ref hasLost, value);
         }
 
-        private List<OneCell> cells = new List<OneCell> { };
-        public List<OneCell> Cells {
+        private ObservableCollection<OneCell> cells = new ObservableCollection<OneCell> { };
+        public ObservableCollection<OneCell> Cells {
             get => cells;
             set => SetProperty(ref cells, value);
         }
@@ -49,11 +50,11 @@ namespace Client {
             set => SetProperty(ref fleetSize, value);
         }
 
-        public Player(string nickname, List<OneCell> cells, int fleetSize) {
+        public Player(string nickname, ObservableCollection<OneCell> cells, int fleetSize) {
             Nickname = nickname;
             HasLost = false;
             Cells = cells;
-            FieldSize = (int) Math.Sqrt(cells.Count);
+            FieldSize = Squares.QuadNums[cells.Count];
             FleetSize = fleetSize;
         }
 
@@ -65,16 +66,10 @@ namespace Client {
             if (!(obj is Player)) return false;
             Player other = obj as Player;
 
-            if (other!.Nickname != Nickname) return false;
-            if (other.HasLost != HasLost) return false;
-            if (other.Cells.Count != Cells.Count) return false;
-            if (other.FieldSize != FieldSize) return false;
-            if (other.FleetSize != FleetSize) return false;
-            return true;
+            if (other!.Nickname == Nickname && other.HasLost == HasLost && other.Cells.Count == Cells.Count && other.FieldSize == FieldSize && other.FleetSize == FleetSize) return true;
+            return false;
         }
 
-        public override int GetHashCode() {
-            throw new NotImplementedException();
-        }
+        public override int GetHashCode() => base.GetHashCode();
     }
 }

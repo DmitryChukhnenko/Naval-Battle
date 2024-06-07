@@ -32,6 +32,10 @@
             <Setter Property="Foreground" Value="Aqua"/>
             <Setter Property="Background" Value="DarkSlateGray"/>
         </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="Aqua"/>
+            <Setter Property="Opacity" Value="0.4"/>
+        </Style>
         <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type FrameworkElement}}">
             <Setter Property="Foreground" Value="Aqua"/>
             <Setter Property="Background" Value="DarkSlateGray"/>
@@ -39,6 +43,9 @@
 
         <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type FrameworkElement}}">
             <Setter Property="Background" Value="DarkSlateGray"/>
+        </Style>
+        <Style TargetType="ItemsControl" BasedOn="{StaticResource {x:Type FrameworkElement}}">
+            <Setter Property="Background" Value="DimGray"/>
         </Style>
 
         <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type FrameworkElement}}">

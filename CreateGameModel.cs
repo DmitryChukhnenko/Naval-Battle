@@ -36,7 +36,7 @@ namespace Client {
             new List<int> { 9, 7, 4, 3, 2, 1 },
             new List<int> { 9, 8, 4, 3, 2, 1 },
             new List<int> { 9, 8, 5, 4, 2, 1 },
-            new List<int> { 9, 8, 6, 4, 3, 1 }
+            new List<int> { 9, 8, 6, 4, 3, 1 },
         };
 
         private int fleetSize;

@@ -27,8 +27,9 @@ namespace Client {
         public Arrangement(bool isHost, string gameId, Player player, List<Player> players, CreateGameModel createGameModel, MainWindow mainWindow, Task runServer, TcpClient serverTcp) {
             InitializeComponent();
 
-            arrangementModel = new ArrangementModel(isHost, false, gameId, player, players, createGameModel, serverTcp);
+            this.mainWindow = mainWindow;
 
+            arrangementModel = new ArrangementModel(isHost, false, gameId, player, players, createGameModel, serverTcp);
             DataContext = arrangementModel;            
                         
             if (isHost) {
@@ -87,7 +88,8 @@ namespace Client {
                 }
                 catch (Exception ex) {
                     arrangementModel.ServerTcp.Dispose();
-                    MessageBox.Show(ex.Message);
+                    MessageBox.Show(ex.ToString());
+                    Close();
                     break;
                 }
             }
@@ -97,6 +99,17 @@ namespace Client {
             game.ShowDialog();
         }
 
+        private async void Send(object sender, RoutedEventArgs e) {
+            if (arrangementModel.ShipsCounter != 0) {
+                MessageBox.Show($"Use all ships! Rest is {arrangementModel.ShipsCounter}");
+                return;
+            }
+            if (arrangementModel.HasSent) {
+                MessageBox.Show($"You have already sent your arrangement!");
+                return;
+            }
+            await ArrangementClient();
+        }
         private async void Continue(object sender, RoutedEventArgs e) {            
             if (arrangementModel.IsHost) {
                 await arrangementModel.ServerTcp.SendMessage(MessageType.Arrangement_ClientToServer_Close);
@@ -109,12 +122,5 @@ namespace Client {
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => mainWindow.GoBack(this);
 
-        private async void Send(object sender, RoutedEventArgs e) {
-            if (arrangementModel.ShipsCounter != 0) {
-                MessageBox.Show($"Use all ships! Rest is {arrangementModel.ShipsCounter}");
-                return;
-            }
-            await ArrangementClient();
-        }
     }
 }

@@ -5,13 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Client {
-    public class NicknameCell {
+    public class NicknamePoint {
         public string Nickname { get; set; } = string.Empty;
-        public OneCell Cell { get; set; }
-        public NicknameCell() { }
-        public NicknameCell(string nickname, OneCell cell) {
+        public XY Point { get; set; }
+        public NicknamePoint() { }
+        public NicknamePoint(string nickname, XY point) {
             Nickname = nickname;
-            Cell = cell;
+            Point = point;
         }
     }
 }
